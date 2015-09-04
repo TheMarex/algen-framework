@@ -4,7 +4,8 @@ CFLAGS = -std=c++11 -g -Wall -Wextra -Werror -I..
 
 # This is where the test files go
 SRC = maybe.cpp \
-      unordered_map.cpp
+      unordered_map.cpp \
+      pairing_heap.cpp
 
 BUILDDIR ?= build
 

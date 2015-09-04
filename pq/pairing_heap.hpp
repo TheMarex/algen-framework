@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <cassert>
+#include <memory>
 
 template<typename T>
 class pairing_heap
@@ -9,7 +11,20 @@ class pairing_heap
     struct HeapElem
     {
         HeapElem() : is_empty(true) {}
+        HeapElem(T&& key) : key(std::move(key)), is_empty(false) {}
         HeapElem(HeapElem&& other)
+        {
+            key = std::move(other.key);
+            sub_heaps = std::move(other.sub_heaps);
+        }
+        ~HeapElem()
+        {
+            for (auto* elem : sub_heaps)
+            {
+                delete elem;
+            }
+        }
+        void operator=(HeapElem&& other)
         {
             key = std::move(other.key);
             sub_heaps = std::move(other.sub_heaps);
@@ -20,7 +35,7 @@ class pairing_heap
         std::vector<HeapElem*> sub_heaps;
     };
 
-
+public:
     /// Retrieves the top element
     const T& top()
     {
@@ -31,15 +46,15 @@ class pairing_heap
     /// Add an element to the priority queue by const lvalue reference
     void push(const T& value)
     {
-        HeapElem new_heap;
-        new_heap.key = value;
-        new_heap.is_empty = false;
-        merge(_root, std::move(new_heap));
+        ++_size;
+        auto new_heap = new HeapElem(value);
+        merge(_root, new_heap);
     }
 
     /// Add an element to the priority queue by rvalue reference (with move)
     void push(T&& value)
     {
+        ++_size;
         HeapElem new_heap;
         new_heap.key = std::move(value);
         new_heap.is_empty = false;
@@ -60,31 +75,29 @@ class pairing_heap
     }
 
 private:
+
     /// Appends rhs to lhs
     /// This does not update the global _size, so we can't make it public.
-    void merge(HeapElem& lhs, HeapElem&& rhs) const
+    void merge(HeapElem& lhs, HeapElem* rhs) const
     {
         if (lhs.is_empty)
         {
-            lhs = std::move(rhs);
+            lhs = std::move(*rhs);
+            delete rhs;
+            return;
         }
-        else if (rhs.is_empty)
+        else if (rhs->is_empty)
         {
+            delete rhs;
             return;
         }
 
-        // make sure that we always copy the least amount of elements
-        if (lhs.sub_heaps.size() < rhs.sub_heaps.size())
+        if (lhs.key > rhs->key)
         {
-            lhs.sub_heaps.swap(rhs.sub_heaps);
+            std::swap(lhs.key, rhs->key);
+            lhs.sub_heaps.swap(rhs->sub_heaps);
         }
-
-        lhs.sub_heaps.insert(lhs.sub_heaps.end(), rhs.sub_heaps.begin(), rhs.sub_heaps.end());
-
-        if (lhs.key > rhs.key)
-        {
-            std::swap(lhs.key, rhs.key);
-        }
+        lhs.sub_heaps.push_back(rhs);
     }
 
     /// Implements the merge_pairs function in a non-recursive form
@@ -132,10 +145,10 @@ private:
             }
         }
 
-        root = std::move(root.sub_heaps.front());
+        root.reset(root.sub_heaps.front());
     }
 
 private:
-    HeapElem _root;
+    std::unique_ptr<HeapElem> _root;
     unsigned _size;
 };
