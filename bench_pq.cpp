@@ -65,6 +65,7 @@ int main(int argc, char** argv) {
     common::contender_list<PQ> contenders;
     // TODO: add your own implementation here!
 
+#ifndef PLAIN_BENCH
     // Add std::priority_queue
     pq::std_pq<int>::register_contenders(contenders);
 
@@ -72,6 +73,7 @@ int main(int argc, char** argv) {
     // These are from GNU libstdc++ policy-based datastructures library
     // Only use if available
     pq::gnu_pq<int>::register_contenders(contenders);
+#endif
 #endif
 
     // Register Benchmarks
@@ -102,6 +104,7 @@ int main(int argc, char** argv) {
 
     // Run the benchmarks
     common::experiment_runner<PQ, Configuration> runner(contenders, instrumentations, benchmarks, results);
+
     runner.run(repetitions, resultfn_prefix);
 
     // Evaluate the result

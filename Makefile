@@ -1,13 +1,13 @@
 # g++ >= 4.9 or clang++ >= 3.4 is required to build this.
 # clang++ 3.4 and 3.5 cannot build the compare target with debug information.
 # Either remove "-g" from the flags or use clang++ >= 3.6 (or g++).
-CX ?= clang++-3.6
+CX ?= g++
 CC ?= gcc
 
 SANITIZER ?= address
 
 COMMONFLAGS = -std=c++1y -Wall -Wextra -Werror
-CFLAGS = ${COMMONFLAGS} -Ofast -g -DNDEBUG
+CFLAGS = ${COMMONFLAGS} -Ofast -DNDEBUG
 DEBUGFLAGS = ${COMMONFLAGS} -O0 -ggdb3
 LDFLAGS = -lpapi -lboost_serialization
 MALLOC_LDFLAGS = -ldl
@@ -21,7 +21,7 @@ clean:
 		debug_hash debug_pq sanitize_hash sanitize_pq
 
 malloc_count.o: malloc_count/malloc_count.c  malloc_count/malloc_count.h
-	$(CC) -O2 -Wall -Werror -g -c -o $@ $<
+	$(CC) -Ofast -Wall -Werror -c -o $@ $<
 
 bench_hash: bench_hash.cpp common/*.h hashtable/*.h
 	$(CX) $(CFLAGS) -o $@ $< $(LDFLAGS)
@@ -33,7 +33,10 @@ bench_pq: bench_pq.cpp common/*.h pq/*.h
 	$(CX) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 bench_pq_malloc: bench_pq.cpp malloc_count.o common/*.h pq/*.h
-	$(CX) $(CFLAGS) -DMALLOC_INSTR -o $@ $< malloc_count.o $(LDFLAGS) $(MALLOC_LDFLAGS)
+	$(CX) $(CFLAGS) -DMALLOC_INSTR -DPLAIN_BENCH -o $@ $< malloc_count.o $(LDFLAGS) $(MALLOC_LDFLAGS)
+
+bench_pq_plain: bench_pq.cpp common/*.h pq/*.h pq/*.hpp
+	$(CX) $(CFLAGS) -DPLAIN_BENCH -o $@ $< $(LDFLAGS)
 
 debug_hash: bench_hash.cpp common/*.h hashtable/*.h
 	$(CX) $(DEBUGFLAGS) -o $@ $< $(LDFLAGS)
