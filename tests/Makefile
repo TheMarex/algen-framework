@@ -3,9 +3,11 @@ CXX ?= g++
 CFLAGS = -std=c++11 -g -Wall -Wextra -Werror -I..
 
 # This is where the test files go
-SRC = maybe.cpp \
-      unordered_map.cpp \
-      pairing_heap.cpp
+#SRC = maybe.cpp \
+#      unordered_map.cpp \
+#      pairing_heap.cpp
+SRC = pairing_heap.cpp
+HEADER = ../pq/naive_pairing_heap.hpp
 
 BUILDDIR ?= build
 
@@ -22,7 +24,7 @@ directories: ${BUILDDIR}
 build:
 	mkdir -p ${BUILDDIR}
 
-${BUILDDIR}/%.o: %.cpp build
+${BUILDDIR}/%.o: %.cpp build $(HEADER)
 	$(CXX) $(CFLAGS) -c $< -o $@
 
 tests: $(OBJ)
