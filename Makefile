@@ -29,7 +29,7 @@ bench_hash: bench_hash.cpp common/*.h hashtable/*.h
 bench_hash_malloc: bench_hash.cpp malloc_count.o common/*.h hashtable/*.h
 	$(CX) $(CFLAGS) -DMALLOC_INSTR -o $@ $< malloc_count.o $(LDFLAGS) $(MALLOC_LDFLAGS)
 
-bench_pq: bench_pq.cpp common/*.h pq/*.h
+bench_pq: bench_pq.cpp common/*.h pq/*.h pq/*.hpp
 	$(CX) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 bench_pq_malloc: bench_pq.cpp malloc_count.o common/*.h pq/*.h

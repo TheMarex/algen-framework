@@ -103,19 +103,108 @@ namespace list_helper
 }
 
 template<typename T>
+class free_list
+{
+public:
+    static constexpr double GROWFACTOR = 1.5;
+    static constexpr double SHRINKFACTOR = 3;
+
+    free_list() : _first(nullptr), _capacity(0), _size(0) {}
+
+    /// Removes an eleement from the free list.
+    /// If no free elements are available, allocate new.
+    T* get()
+    {
+        _size++;
+        if (_size*GROWFACTOR > _capacity)
+        {
+            reserve(_size*GROWFACTOR);
+        }
+
+        assert(_size <= _capacity);
+        assert(_first != nullptr);
+
+        auto* elem = pop();
+
+        return elem;
+    }
+
+    /// Adds elem to the free list
+    void release(T* elem)
+    {
+        assert(_size > 0);
+        _size--;
+        if (_size*SHRINKFACTOR < _capacity)
+        {
+            reserve(_capacity/GROWFACTOR);
+        }
+
+        push(elem);
+    }
+
+    /// Changes the number of reserved elements, but never
+    /// below the size.
+    void reserve(std::size_t capacity)
+    {
+        capacity = std::max(1UL, std::max(_size, capacity));
+
+        while (_capacity < capacity)
+        {
+            auto* elem = new T();
+            push(elem);
+            _capacity++;
+        }
+        while (_capacity > capacity)
+        {
+            delete pop();
+            _capacity--;
+        }
+
+        assert(_capacity == capacity);
+    }
+
+    /// Returns the number of free elements.
+    std::size_t free() const
+    {
+        return _capacity - _size;
+    }
+
+private:
+    T* pop()
+    {
+        assert(_first != nullptr);
+
+        auto* elem = _first;
+        _first = elem->next_sibling;
+        return elem;
+    }
+
+    void push(T* elem)
+    {
+        elem->next_sibling = _first;
+        _first = elem;
+    };
+
+    T* _first;
+    std::size_t _capacity;
+    std::size_t _size;
+};
+
+template<typename T>
 class addressable_pairing_heap
 {
     struct sub_tree;
     struct sub_tree
     {
         sub_tree(const T& in_key)
-            : key(in_key), prev_sibling(nullptr), next_sibling(nullptr), first_child(nullptr) {}
+            : key(in_key) {}
+
         sub_tree(T&& in_key)
-            : key(std::move(in_key)), prev_sibling(nullptr), next_sibling(nullptr), first_child(nullptr) {}
+            : key(std::move(in_key)) {}
 
         template<typename... Args>
         sub_tree(Args&&... args)
-            : key(std::forward<Args>(args)...), prev_sibling(nullptr), next_sibling(nullptr), first_child(nullptr) {}
+            : key(std::forward<Args>(args)...) {}
 
         ~sub_tree()
         {
@@ -129,11 +218,11 @@ class addressable_pairing_heap
         T key;
         //! the first child stores the parent here
         union {
-            sub_tree* prev_sibling;
+            sub_tree* prev_sibling = nullptr;
             sub_tree* parent;
         };
-        sub_tree* next_sibling;
-        sub_tree* first_child;
+        sub_tree* next_sibling = nullptr;
+        sub_tree* first_child = nullptr;
     };
 
 public:
@@ -149,7 +238,7 @@ public:
     /// Add an element to the priority queue by const lvalue reference
     sub_tree* push(const T& value)
     {
-        auto* new_root = new sub_tree(value);
+        auto* new_root = new(_free.get()) sub_tree(value);
         insert(new_root);
 
         return new_root;
@@ -158,7 +247,7 @@ public:
     /// Add an element to the priority queue by rvalue reference (with move)
     sub_tree* push(T&& value)
     {
-        auto* new_root = new sub_tree(value);
+        auto* new_root = new(_free.get()) sub_tree(value);
         insert(new_root);
 
         return new_root;
@@ -168,7 +257,7 @@ public:
     template <typename... Args>
     sub_tree* emplace(Args&&... args)
     {
-        auto* new_root = new sub_tree(std::forward<Args>(args)...);
+        auto* new_root = new(_free.get()) sub_tree(std::forward<Args>(args)...);
         insert(new_root);
 
         return new_root;
@@ -196,7 +285,7 @@ public:
 
         auto* next_root = _roots->next_sibling;
         list_helper::unlink_silbling(_roots);
-        delete _roots;
+        _free.release(_roots);
         _roots = next_root;
 
         update_min();
@@ -340,6 +429,8 @@ private:
     }
 
 private:
+    //! free list
+    free_list<sub_tree> _free;
     //! first element is the min root
     sub_tree* _roots;
     std::size_t _size;

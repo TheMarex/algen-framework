@@ -7,6 +7,7 @@ using TestHeap = addressable_pairing_heap<unsigned>;
 
 struct ComplexTestKey
 {
+    ComplexTestKey() = default;
     ComplexTestKey(unsigned a, unsigned b) : a(a), b(b) {}
     unsigned a;
     unsigned b;
@@ -98,10 +99,12 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
                 CHECK(pq.top() == 3);
                 CHECK(pq.size() == 5);
             }
+            std::cout << "========" << std::endl;
         }
 
         WHEN("We remove the first 5 elements")
         {
+            std::cout << "We remove the first 5 elements" << std::endl;
             pq.pop();
             pq.pop();
             pq.pop();
