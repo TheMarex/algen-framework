@@ -7,7 +7,7 @@ CFLAGS = -std=c++11 -g -Wall -Wextra -Werror -I..
 #      unordered_map.cpp \
 #      pairing_heap.cpp
 SRC = pairing_heap.cpp
-HEADER = ../pq/naive_pairing_heap.hpp
+HEADER = ../pq/addressable_pairing_heap.hpp
 
 BUILDDIR ?= build
 

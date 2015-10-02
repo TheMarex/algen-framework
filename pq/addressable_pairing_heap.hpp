@@ -103,17 +103,21 @@ namespace list_helper
 }
 
 template<typename T>
-class naive_pairing_heap
+class addressable_pairing_heap
 {
-    struct SubTree;
-    struct SubTree
+    struct sub_tree;
+    struct sub_tree
     {
-        SubTree(const T& in_key)
+        sub_tree(const T& in_key)
             : key(in_key), prev_sibling(nullptr), next_sibling(nullptr), first_child(nullptr) {}
-        SubTree(T&& in_key)
-            : key(std::move(in_key)), prev_sibling(nullptr), next_sibling(nullptr), first_child(nullptr){}
+        sub_tree(T&& in_key)
+            : key(std::move(in_key)), prev_sibling(nullptr), next_sibling(nullptr), first_child(nullptr) {}
 
-        ~SubTree()
+        template<typename... Args>
+        sub_tree(Args&&... args)
+            : key(std::forward<Args>(args)...), prev_sibling(nullptr), next_sibling(nullptr), first_child(nullptr) {}
+
+        ~sub_tree()
         {
             // deallocate all children.
             for (auto* child = first_child; child != nullptr; child = child->next_sibling)
@@ -125,63 +129,47 @@ class naive_pairing_heap
         T key;
         //! the first child stores the parent here
         union {
-            SubTree* prev_sibling;
-            SubTree* parent;
+            sub_tree* prev_sibling;
+            sub_tree* parent;
         };
-        SubTree* next_sibling;
-        SubTree* first_child;
+        sub_tree* next_sibling;
+        sub_tree* first_child;
     };
 
 public:
-    naive_pairing_heap() : _roots(nullptr), _size(0) {}
+    addressable_pairing_heap() : _roots(nullptr), _size(0) {}
 
     /// Retrieves the top element
-    const T& top()
+    const T& top() const
     {
         assert(_size > 0);
         return _roots->key;
     }
 
     /// Add an element to the priority queue by const lvalue reference
-    SubTree* push(const T& value)
+    sub_tree* push(const T& value)
     {
-        auto* new_root = new SubTree(value);
-        if (!_roots)
-        {
-            _roots = new_root;
-        }
-        else if (value < _roots->key)
-        {
-            list_helper::link_before_sibling(_roots, new_root);
-            _roots = new_root;
-        }
-        else
-        {
-            list_helper::link_sibling(_roots, new_root);
-        }
-        ++_size;
+        auto* new_root = new sub_tree(value);
+        insert(new_root);
 
         return new_root;
     }
 
     /// Add an element to the priority queue by rvalue reference (with move)
-    SubTree* push(T&& value)
+    sub_tree* push(T&& value)
     {
-        auto* new_root = new SubTree(value);
-        if (!_roots)
-        {
-            _roots = new_root;
-        }
-        else if (value < _roots->key)
-        {
-            list_helper::link_before_sibling(_roots, new_root);
-            _roots = new_root;
-        }
-        else
-        {
-            list_helper::link_sibling(_roots, new_root);
-        }
-        ++_size;
+        auto* new_root = new sub_tree(value);
+        insert(new_root);
+
+        return new_root;
+    }
+
+    /// Add an element in-place without copying or moving
+    template <typename... Args>
+    sub_tree* emplace(Args&&... args)
+    {
+        auto* new_root = new sub_tree(std::forward<Args>(args)...);
+        insert(new_root);
 
         return new_root;
     }
@@ -223,7 +211,7 @@ public:
     }
 
     /// decreases the key of the given element
-    void decrease_key(SubTree* element, const T& key)
+    void decrease_key(sub_tree* element, const T& key)
     {
         element->key = key;
         cut_and_insert(element);
@@ -232,8 +220,27 @@ public:
     }
 
 private:
+    /// insert new element into heap
+    void insert(sub_tree* new_root)
+    {
+        if (!_roots)
+        {
+            _roots = new_root;
+        }
+        else if (new_root->key < _roots->key)
+        {
+            list_helper::link_before_sibling(_roots, new_root);
+            _roots = new_root;
+        }
+        else
+        {
+            list_helper::link_sibling(_roots, new_root);
+        }
+        ++_size;
+    }
+
     /// cut subtree from
-    void cut_and_insert(SubTree* element)
+    void cut_and_insert(sub_tree* element)
     {
         list_helper::unlink_silbling(element);
         // might not be the best position to insert
@@ -310,7 +317,7 @@ private:
         }
     }
 
-    void _dump_siblings(SubTree* tree) const
+    void _dump_siblings(sub_tree* tree) const
     {
         std::cout << "-> " << tree << std::endl;
         while (tree != nullptr && tree->next_sibling != tree)
@@ -321,7 +328,7 @@ private:
         std::cout << std::endl;
     }
 
-    void _dump_tree(SubTree* tree) const
+    void _dump_tree(sub_tree* tree) const
     {
         while (tree != nullptr && tree->next_sibling != tree)
         {
@@ -334,7 +341,7 @@ private:
 
 private:
     //! first element is the min root
-    SubTree* _roots;
+    sub_tree* _roots;
     std::size_t _size;
 };
 

@@ -1,9 +1,28 @@
 #include "catch.hpp"
 
-//#include "../pq/pairing_heap.hpp"
-#include "../pq/naive_pairing_heap.hpp"
+//#include "../pq/nonaddressable_pairing_heap.hpp"
+#include "../pq/addressable_pairing_heap.hpp"
 
-using TestHeap = naive_pairing_heap<unsigned>;
+using TestHeap = addressable_pairing_heap<unsigned>;
+
+struct ComplexTestKey
+{
+    ComplexTestKey(unsigned a, unsigned b) : a(a), b(b) {}
+    unsigned a;
+    unsigned b;
+};
+
+bool operator==(const ComplexTestKey& lhs, const ComplexTestKey& rhs)
+{
+    return lhs.a == rhs.a && lhs.b == rhs.b;
+}
+
+bool operator<(const ComplexTestKey& lhs, const ComplexTestKey& rhs)
+{
+    return lhs.a < lhs.a || (lhs.a == rhs.a && lhs.b < rhs.b);
+}
+
+using ComplexTestHeap = addressable_pairing_heap<ComplexTestKey>;
 
 SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
 {
@@ -39,6 +58,15 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
             AND_THEN("After inserting one element it returns it")
             {
                 CHECK(pq.top() == 5);
+            }
+        }
+        WHEN("We emplace a list of elements")
+        {
+            pq.emplace(1337);
+            THEN("They are added.")
+            {
+                CHECK(pq.size() == 1);
+                CHECK(pq.top() == 1337);
             }
         }
     }
@@ -132,6 +160,24 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
             {
                 CHECK(pq.top() == 7);
             }
+        }
+    }
+}
+
+SCENARIO("pairing_heap work with complex keys", "[pairing_heap]")
+{
+    ComplexTestHeap pq;
+
+    GIVEN("An initialized pq")
+    {
+        pq.emplace(0, 1);
+        pq.emplace(1337, 1);
+        pq.emplace(0, 2);
+        pq.emplace(5, 8);
+
+        WHEN("We ask for the top")
+        {
+            CHECK(pq.top() == (ComplexTestKey {0, 1}));
         }
     }
 }

@@ -12,6 +12,7 @@
 #include "common/hack.h"
 #include "common/instrumentation.h"
 
+#include "pq/pairing_heap.hpp"
 #include "pq/priority_queue.h"
 #include "pq/std_pq.h"
 #include "pq/gnu_pq.h"
@@ -63,7 +64,8 @@ int main(int argc, char** argv) {
 
     // Set up data structure contenders
     common::contender_list<PQ> contenders;
-    // TODO: add your own implementation here!
+
+    pq::pairing_heap<int>::register_contenders(contenders);
 
 #ifndef PLAIN_BENCH
     // Add std::priority_queue
