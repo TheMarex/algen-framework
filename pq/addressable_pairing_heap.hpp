@@ -13,12 +13,21 @@
 #include "helper/linked_tree.hpp"
 #include "helper/free_list.hpp"
 
-template<typename T, template<typename S> class FreeListT=free_list>
+template<typename T, template<typename S> class FreeListT=malloc_wrapper>
 class addressable_pairing_heap
 {
 public:
     using elem = linked_tree<T>;
     addressable_pairing_heap() : _roots(nullptr), _size(0) {}
+    ~addressable_pairing_heap()
+    {
+        while (_roots != nullptr)
+        {
+            auto* next = _roots->next_sibling;
+            delete _roots;
+            _roots = next;
+        }
+    }
 
     /// Retrieves the top element
     const T& top() const

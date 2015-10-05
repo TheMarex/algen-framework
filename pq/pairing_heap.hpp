@@ -24,11 +24,8 @@ public:
         list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
             [](){ return new pairing_heap<T, free_list>();}
         ));
-        list.register_contender(Factory("pairing_heap no-overgrow free list", "pairing-heap-no-og-fl",
-            [](){ return new pairing_heap<T, noovergrow_free_list>();}
-        ));
-        list.register_contender(Factory("pairing_heap non-overallocating free list", "pairing-heap-non-oa-fl",
-            [](){ return new pairing_heap<T, nooveralloc_free_list>();}
+        list.register_contender(Factory("pairing_heap lazy-shrink free list", "pairing-heap-lazyshrink-fl",
+            [](){ return new pairing_heap<T, ls_free_list>();}
         ));
     }
 
