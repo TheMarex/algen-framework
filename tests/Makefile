@@ -1,6 +1,6 @@
 CXX ?= g++
 
-CFLAGS = -std=c++11 -g -Wall -Wextra -Werror -I..
+CFLAGS = -std=c++11 -g -Wall -Wextra -Werror -fsanitize=address -I..
 
 # This is where the test files go
 #SRC = maybe.cpp \
