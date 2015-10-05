@@ -6,18 +6,29 @@
 #include "priority_queue.h"
 
 #include "addressable_pairing_heap.hpp"
+#include "helper/free_list.hpp"
 
 namespace pq {
 
-template<typename T>
+template<typename T, template<typename S> class FreeListT=malloc_wrapper>
 class pairing_heap : public priority_queue<T> {
 public:
     pairing_heap() : queue() {}
 
     static void register_contenders(common::contender_list<priority_queue<T>> &list) {
         using Factory = common::contender_factory<priority_queue<T>>;
-        list.register_contender(Factory("pairing_heap", "pairing-heap",
+
+        list.register_contender(Factory("pairing_heap without free list", "pairing-heap-no-fl",
             [](){ return new pairing_heap<T>();}
+        ));
+        list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
+            [](){ return new pairing_heap<T, free_list>();}
+        ));
+        list.register_contender(Factory("pairing_heap no-overgrow free list", "pairing-heap-no-og-fl",
+            [](){ return new pairing_heap<T, noovergrow_free_list>();}
+        ));
+        list.register_contender(Factory("pairing_heap non-overallocating free list", "pairing-heap-non-oa-fl",
+            [](){ return new pairing_heap<T, nooveralloc_free_list>();}
         ));
     }
 
@@ -52,7 +63,7 @@ public:
     }
 
 protected:
-    addressable_pairing_heap<T> queue;
+    addressable_pairing_heap<T, FreeListT> queue;
 };
 
 }

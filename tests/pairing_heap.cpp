@@ -13,6 +13,12 @@ struct ComplexTestKey
     unsigned b;
 };
 
+std::ostream& operator<<(std::ostream& lhs, const ComplexTestKey& rhs)
+{
+    lhs << "[" << rhs.a << "," << rhs.b << "]" << std::endl;
+    return lhs;
+}
+
 bool operator==(const ComplexTestKey& lhs, const ComplexTestKey& rhs)
 {
     return lhs.a == rhs.a && lhs.b == rhs.b;
@@ -99,12 +105,10 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
                 CHECK(pq.top() == 3);
                 CHECK(pq.size() == 5);
             }
-            std::cout << "========" << std::endl;
         }
 
         WHEN("We remove the first 5 elements")
         {
-            std::cout << "We remove the first 5 elements" << std::endl;
             pq.pop();
             pq.pop();
             pq.pop();
