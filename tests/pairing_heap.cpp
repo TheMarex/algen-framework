@@ -76,6 +76,59 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
                 CHECK(pq.top() == 1337);
             }
         }
+
+        WHEN("We do (push-pop-push)^6 (pop-push-pop)^6")
+        {
+            pq.push(1);
+            pq.pop();
+            pq.push(5);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(7);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(12);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(1337);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(1);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(3);
+
+            pq.pop();
+            pq.push(5);
+            pq.pop();
+
+            pq.pop();
+            pq.push(7);
+            pq.pop();
+
+            pq.pop();
+            pq.push(12);
+            pq.pop();
+
+            pq.pop();
+            pq.push(1337);
+            pq.pop();
+
+            pq.pop();
+            pq.push(1);
+            pq.pop();
+
+            pq.pop();
+            pq.push(3);
+            pq.pop();
+
+            CHECK(pq.size() == 0);
+        }
     }
 
     GIVEN("An heap with six elements")
