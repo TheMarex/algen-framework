@@ -25,9 +25,12 @@ struct linked_tree
     ~linked_tree()
     {
         // deallocate all children.
-        for (auto* child = first_child; child != nullptr; child = child->next_sibling)
+        auto* child = first_child;
+        while (child != nullptr)
         {
+            auto* next = child->next_sibling;
             delete child;
+            child = next;
         }
     }
 
