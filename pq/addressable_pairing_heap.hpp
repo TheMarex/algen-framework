@@ -89,10 +89,7 @@ public:
         _free.release(_roots);
         _roots = next_root;
 
-        // FIXME move that after rake
-        update_min();
-
-        rake_roots();
+        rake_and_update_roots();
     }
 
     /// Get the number of elements in the priority queue
@@ -105,9 +102,10 @@ public:
     void decrease_key(elem* element, const T& key)
     {
         element->key = key;
+
         cut_and_insert(element);
 
-        update_min();
+        rake_and_update_roots();
     }
 
 private:
@@ -133,7 +131,19 @@ private:
     /// cut subtree from
     void cut_and_insert(elem* element)
     {
-        element->unlink_from_siblings();
+        // is first child of the parent (also can't be a root)
+        if (element->parent && element->parent->first_child == element)
+        {
+            auto next = element->next_sibling;
+            element->parent->first_child = next;
+            if (next) next->parent = element->parent;
+            element->parent->first_child = next;
+        }
+        // is a root or non-first child
+        else
+        {
+            element->unlink_from_siblings();
+        }
         // might not be the best position to insert
         _roots->link_sibling(element);
     }
@@ -161,7 +171,7 @@ private:
     }
 
     /// merges adjacent roots
-    void rake_roots()
+    void rake_and_update_roots()
     {
         auto* even_root = _roots;
 
@@ -187,6 +197,9 @@ private:
             even_root = next_even_root;
         }
 
+        // _roots is still the minimum of the first two roots
+        auto* min_root = _roots;
+
         while (even_root != nullptr && even_root->next_sibling != nullptr)
         {
             auto* odd_root = even_root->next_sibling;
@@ -197,14 +210,25 @@ private:
             {
                 odd_root->unlink_from_siblings();
                 even_root->link_child(odd_root);
+                if (even_root->key < min_root->key)
+                    min_root = even_root;
             }
             else
             {
                 even_root->unlink_from_siblings();
                 odd_root->link_child(even_root);
+                if (odd_root->key < min_root->key)
+                    min_root = odd_root;
             }
 
             even_root = next_even_root;
+        }
+
+        if (min_root != _roots)
+        {
+            min_root->unlink_from_siblings();
+            _roots->link_sibling_before(min_root);
+            _roots = min_root;
         }
     }
 
