@@ -181,15 +181,23 @@ private:
             auto* odd_root = even_root->next_sibling;
             auto* next_even_root = odd_root->next_sibling;
 
-            // TODO this can be done with less operations
             if (odd_root->key > even_root->key)
             {
-                odd_root->unlink_from_siblings();
+                even_root->next_sibling = next_even_root;
+                if (next_even_root != nullptr)
+                    next_even_root->prev_sibling = even_root;
+
+                // prev_sibling and next_sibling is always overwritten by link_child
                 even_root->link_child(odd_root);
             }
             else
             {
-                even_root->unlink_from_siblings();
+                auto* prev_root = even_root->prev_sibling;
+                odd_root->prev_sibling = prev_root;
+                if (prev_root != nullptr)
+                    prev_root->next_sibling = odd_root;
+
+                // prev_sibling and next_sibling is always overwritten by link_child
                 odd_root->link_child(even_root);
                 _roots = odd_root;
             }
@@ -208,15 +216,26 @@ private:
             // TODO this can be done with less operations
             if (odd_root->key > even_root->key)
             {
-                odd_root->unlink_from_siblings();
+                even_root->next_sibling = next_even_root;
+                if (next_even_root != nullptr)
+                    next_even_root->prev_sibling = even_root;
+
+                // prev_sibling and next_sibling is always overwritten by link_child
                 even_root->link_child(odd_root);
+
                 if (even_root->key < min_root->key)
                     min_root = even_root;
             }
             else
             {
-                even_root->unlink_from_siblings();
+                auto* prev_root = even_root->prev_sibling;
+                odd_root->prev_sibling = prev_root;
+                if (prev_root != nullptr)
+                    prev_root->next_sibling = odd_root;
+
+                // prev_sibling and next_sibling is always overwritten by link_child
                 odd_root->link_child(even_root);
+
                 if (odd_root->key < min_root->key)
                     min_root = odd_root;
             }

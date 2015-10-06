@@ -111,9 +111,9 @@ struct linked_tree
         if (first_child)
         {
             first_child->prev_sibling = new_elem;
-            new_elem->next_sibling = first_child;
         }
 
+        new_elem->next_sibling = first_child;
         first_child = new_elem;
     }
 
