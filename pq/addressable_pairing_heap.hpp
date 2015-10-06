@@ -243,12 +243,25 @@ private:
         std::cout << std::endl;
     }
 
-    void _dump_tree(elem* tree) const
+    void _dump_tree(elem* tree, unsigned depth=0) const
     {
-        while (tree != nullptr && tree->next_sibling != tree)
+        // in case of endless recursion
+        assert(depth < 5);
+
+        // check for cycle in slibing list
+        auto* slow = tree;
+        auto* fast = tree != nullptr ? tree->next_sibling : nullptr;
+        while (slow != nullptr && fast != nullptr)
+        {
+            assert(slow != fast);
+            slow = slow->next_sibling;
+            fast = fast->next_sibling != nullptr ? fast->next_sibling->next_sibling : nullptr;
+        }
+
+        while (tree != nullptr)
         {
             std::cout << "(" << tree->key << ": ";
-            _dump_tree(tree->first_child);
+            _dump_tree(tree->first_child, depth+1);
             std::cout << ")";
             tree = tree->next_sibling;
         }
