@@ -78,6 +78,38 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
             }
         }
 
+        WHEN("We do (push-pop-push)^6")
+        {
+            pq.push(1);
+            pq.pop();
+            pq.push(5);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(7);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(12);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(1337);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(1);
+
+            pq.push(1);
+            pq.pop();
+            pq.push(3);
+
+            THEN("size is correct")
+            {
+                CHECK(pq.size() == 6);
+            }
+        }
+
         WHEN("We do (push-pop-push)^6 (pop-push-pop)^6")
         {
             pq.push(1);
@@ -128,7 +160,10 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
             pq.push(3);
             pq.pop();
 
-            CHECK(pq.size() == 0);
+            THEN("size is correct")
+            {
+                CHECK(pq.size() == 0);
+            }
         }
     }
 
