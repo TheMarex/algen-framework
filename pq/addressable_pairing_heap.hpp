@@ -120,12 +120,11 @@ public:
     /// decreases the key of the given element
     void decrease_key(elem* element, const T& key)
     {
+        assert(key <= element->key);
         element->key = key;
 
-        if (element != _roots && element != _last_root)
+        if (element != _roots)
             cut_and_insert(element);
-
-        rake_and_update_roots();
     }
 
 private:
@@ -144,9 +143,9 @@ private:
         }
         else
         {
-            _roots->link_sibling(new_root);
-            if (_roots == _last_root)
-                _last_root = new_root;
+            _last_root->next_sibling = new_root;
+            new_root->prev_sibling = _last_root;
+            _last_root = new_root;
         }
         ++_size;
     }
@@ -155,7 +154,6 @@ private:
     void cut_and_insert(elem* element)
     {
         assert(element != _roots);
-        assert(element != _last_root);
 
         // is first child of the parent (also can't be a root)
         if (element->parent && element->parent->first_child == element)
@@ -163,7 +161,8 @@ private:
             auto next = element->next_sibling;
             element->parent->first_child = next;
             if (next) next->parent = element->parent;
-            element->parent->first_child = next;
+            element->next_sibling = nullptr;
+            element->prev_sibling = nullptr;
 
             // no need to update _last_root here
             // because element is not a root node
@@ -171,10 +170,31 @@ private:
         // could be a root or non-first child
         else
         {
+            if (element == _last_root)
+            {
+                _last_root = element->prev_sibling;
+            }
             element->unlink_from_siblings();
         }
-        // might not be the best position to insert
-        _roots->link_sibling(element);
+
+        if (element->key < _roots->key)
+        {
+            assert(element->next_sibling == nullptr);
+            assert(element->prev_sibling == nullptr);
+
+            _roots->link_sibling_before(element);
+            _roots = element;
+        }
+        else
+        {
+            assert(element->next_sibling == nullptr);
+            assert(element->prev_sibling == nullptr);
+
+            // append at end and update root
+            _last_root->next_sibling = element;
+            element->prev_sibling = _last_root;
+            _last_root = element;
+        }
     }
 
     /// Merges adjacent roots and updates:
