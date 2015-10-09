@@ -4,6 +4,7 @@
 #include "../pq/addressable_pairing_heap.hpp"
 
 using TestHeap = addressable_pairing_heap<unsigned>;
+using TestHeapInt = addressable_pairing_heap<int>;
 
 struct ComplexTestKey
 {
@@ -238,6 +239,43 @@ SCENARIO("pairing_heap work with complex keys", "[pairing_heap]")
         WHEN("We ask for the top")
         {
             CHECK(pq.top() == (ComplexTestKey {0, 1}));
+        }
+    }
+}
+
+SCENARIO("regression tests", "[pairing_heap]")
+{
+    TestHeapInt pq;
+
+    GIVEN("The random test seed from the microbenchmark")
+    {
+        pq.push(222971128);
+        pq.push(-781099959);
+        pq.push(1581535537);
+        pq.push(478793676);
+        pq.push(244574117);
+        pq.push(1677044595);
+        pq.push(2035291173);
+        pq.push(766503359);
+
+        WHEN("We ask for the top element")
+        {
+            CHECK(pq.size() == 8);
+            CHECK(pq.top() == -781099959);
+        }
+
+        WHEN("We remove all elements")
+        {
+            pq.pop();
+            pq.pop();
+            pq.pop();
+            pq.pop();
+            pq.pop();
+            pq.pop();
+            pq.pop();
+            pq.pop();
+
+            CHECK(pq.size() == 0);
         }
     }
 }
