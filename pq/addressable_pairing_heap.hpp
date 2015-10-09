@@ -256,6 +256,9 @@ private:
             even_root = next_even_root;
         }
 
+        if (even_root != nullptr && even_root->key < min_root->key)
+            min_root = even_root;
+
         if (prev_root != nullptr && prev_root->next_sibling != nullptr)
         {
             _last_root = prev_root->next_sibling;
