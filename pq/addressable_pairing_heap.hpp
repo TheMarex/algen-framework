@@ -6,7 +6,9 @@
 #include <algorithm>
 #include <cassert>
 
-#include<sstream>
+#include <vector>
+
+#include <iterator>
 
 #include <iostream>
 
@@ -18,14 +20,12 @@ class addressable_pairing_heap
 {
 public:
     using elem = linked_tree<T>;
-    addressable_pairing_heap() : _roots(nullptr), _last_root(nullptr), _size(0) {}
+    addressable_pairing_heap() : _min(nullptr), _size(0) {}
     ~addressable_pairing_heap()
     {
-        while (_roots != nullptr)
+        for (auto* r : _roots)
         {
-            auto* next = _roots->next_sibling;
-            delete _roots;
-            _roots = next;
+            _free.release(r);
         }
     }
 
@@ -33,7 +33,7 @@ public:
     const T& top() const
     {
         assert(_size > 0);
-        return _roots->key;
+        return _min->key;
     }
 
     /// Add an element to the priority queue by const lvalue reference
@@ -67,46 +67,30 @@ public:
     void pop()
     {
         assert(_size > 0);
-        assert(_roots != nullptr);
-        assert(_last_root != nullptr);
         --_size;
 
         // children are new roots
-        auto* child = _roots->first_child;
-        _roots->first_child = nullptr;
-
-        if (_roots == _last_root)
+        auto* child = _min->first_child;
+        _min->first_child = nullptr;
+        while (child != nullptr)
         {
-            if (child != nullptr) child->parent = nullptr;
-            _free.release(_roots);
-            _roots = child;
-            _last_root = child;
+            auto next = child->next_sibling;
+            child->prev_sibling = nullptr;
+            child->next_sibling = nullptr;
 
-            // FIXME can we keep track of the last element in child lists?
-            while (_last_root && _last_root->next_sibling != nullptr)
-            {
-                _last_root = _last_root->next_sibling;
-            }
+            // FIXME benchmark front/back
+            _roots.push_back(child);
+            child = next;
         }
-        else
+
+        std::copy_if(_roots.begin(), _roots.end(), _roots.begin(), [this](elem* e) { return e != _min; });
+        // last element is now invalid since we removed _min
+        // and copied all other
+        _roots.pop_back();
+        _free.release(_min);
+
+        if (_roots.size() > 0)
         {
-            // append children at the end because they form
-            // a single linked list
-            if (child)
-            {
-                assert(_last_root->next_sibling == nullptr);
-
-                child->prev_sibling = _last_root;
-                _last_root->next_sibling = child;
-                // _last_root is _not_ update here because we can it for free
-                // in the rake function
-            }
-
-            auto* next_root = _roots->next_sibling;
-            _roots->unlink_from_siblings();
-            _free.release(_roots);
-            _roots = next_root;
-
             rake_and_update_roots();
         }
     }
@@ -123,29 +107,25 @@ public:
         assert(key <= element->key);
         element->key = key;
 
-        if (element != _roots)
+        if (element->parent != nullptr)
+        {
             cut_and_insert(element);
+        }
+
+        if (element->key < _min->key)
+        {
+            _min = element;
+        }
     }
 
 private:
     /// insert new element into heap
     void insert(elem* new_root)
     {
-        if (!_roots)
+        _roots.push_back(new_root);
+        if (_size == 0 || new_root->key < _min->key)
         {
-            _roots = new_root;
-            _last_root = new_root;
-        }
-        else if (new_root->key < _roots->key)
-        {
-            _roots->link_sibling_before(new_root);
-            _roots = new_root;
-        }
-        else
-        {
-            _last_root->next_sibling = new_root;
-            new_root->prev_sibling = _last_root;
-            _last_root = new_root;
+            _min = new_root;
         }
         ++_size;
     }
@@ -153,156 +133,76 @@ private:
     /// cut subtree from
     void cut_and_insert(elem* element)
     {
-        assert(element != _roots);
+        assert(element->parent != nullptr);
 
-        // is first child of the parent (also can't be a root)
-        if (element->parent && element->parent->first_child == element)
+        // is first child of the parent
+        if (element->parent->first_child == element)
         {
             auto next = element->next_sibling;
             element->parent->first_child = next;
             if (next) next->parent = element->parent;
             element->next_sibling = nullptr;
             element->prev_sibling = nullptr;
-
-            // no need to update _last_root here
-            // because element is not a root node
         }
-        // could be a root or non-first child
         else
         {
-            if (element == _last_root)
-            {
-                _last_root = element->prev_sibling;
-            }
             element->unlink_from_siblings();
         }
 
-        if (element->key < _roots->key)
-        {
-            assert(element->next_sibling == nullptr);
-            assert(element->prev_sibling == nullptr);
-
-            _roots->link_sibling_before(element);
-            _roots = element;
-        }
-        else
-        {
-            assert(element->next_sibling == nullptr);
-            assert(element->prev_sibling == nullptr);
-
-            // append at end and update root
-            _last_root->next_sibling = element;
-            element->prev_sibling = _last_root;
-            _last_root = element;
-        }
+        // FIXME benchmark front/back
+        _roots.push_back(element);
     }
 
-    /// Merges adjacent roots and updates:
-    /// _roots if there is a new min root
-    /// _last_root if the last root changed
-    ///
-    /// After modifying the roots _always_ call this function
-    /// to get into a consistent state.
+    /// Merges adjacent roots and updates _min
     void rake_and_update_roots()
     {
-        auto* even_root = _roots;
+        assert(_roots.size() > 0);
 
-        // unrolled because we need to update _roots
-        if (even_root != nullptr && even_root->next_sibling != nullptr)
+        auto output_iter = _roots.begin();
+        auto even_iter = _roots.begin();
+        elem* new_min = nullptr;
+        while (even_iter != _roots.end() && std::next(even_iter) != _roots.end())
         {
-            auto* odd_root = even_root->next_sibling;
-            auto* next_even_root = odd_root->next_sibling;
+            auto odd_iter = std::next(even_iter);
+            auto* even_root = *even_iter;
+            auto* odd_root = *odd_iter;
 
             if (odd_root->key > even_root->key)
             {
-                even_root->next_sibling = next_even_root;
-                if (next_even_root != nullptr)
-                    next_even_root->prev_sibling = even_root;
-
-                // prev_sibling and next_sibling is always overwritten by link_child
                 even_root->link_child(odd_root);
+
+                if (new_min == nullptr || even_root->key < new_min->key)
+                    new_min = even_root;
+
+                *output_iter = *even_iter;
             }
             else
             {
-                auto* prev_root = even_root->prev_sibling;
-                odd_root->prev_sibling = prev_root;
-                if (prev_root != nullptr)
-                    prev_root->next_sibling = odd_root;
-
-                // prev_sibling and next_sibling is always overwritten by link_child
                 odd_root->link_child(even_root);
-                _roots = odd_root;
+
+                if (new_min == nullptr || odd_root->key < new_min->key)
+                    new_min = odd_root;
+
+                *output_iter = *odd_iter;
             }
 
-            even_root = next_even_root;
+            ++output_iter;
+            even_iter = std::next(odd_iter);
         }
 
-        // _roots is still the minimum of the first two roots
-        auto* min_root = _roots;
-        auto* prev_root = _roots;
-        while (even_root != nullptr && even_root->next_sibling != nullptr)
+        // handle the last root
+        if (even_iter != _roots.end())
         {
-            auto* odd_root = even_root->next_sibling;
-            auto* next_even_root = odd_root->next_sibling;
+            if (new_min == nullptr || (*even_iter)->key < new_min->key)
+                new_min = *even_iter;
 
-            // TODO this can be done with less operations
-            if (odd_root->key > even_root->key)
-            {
-                even_root->next_sibling = next_even_root;
-                if (next_even_root != nullptr)
-                    next_even_root->prev_sibling = even_root;
-
-                // prev_sibling and next_sibling is always overwritten by link_child
-                even_root->link_child(odd_root);
-                prev_root = even_root;
-
-                if (even_root->key < min_root->key)
-                    min_root = even_root;
-            }
-            else
-            {
-                odd_root->prev_sibling = prev_root;
-                assert(prev_root != nullptr);
-                prev_root->next_sibling = odd_root;
-
-                // prev_sibling and next_sibling is always overwritten by link_child
-                odd_root->link_child(even_root);
-                prev_root = odd_root;
-
-                if (odd_root->key < min_root->key)
-                    min_root = odd_root;
-            }
-
-            even_root = next_even_root;
+            *output_iter = *even_iter;
+            ++output_iter;
         }
 
-        if (even_root != nullptr && even_root->key < min_root->key)
-            min_root = even_root;
+        _min = new_min;
 
-        if (prev_root != nullptr && prev_root->next_sibling != nullptr)
-        {
-            _last_root = prev_root->next_sibling;
-        }
-        else
-        {
-            _last_root = prev_root;
-        }
-
-        update_min(min_root);
-    }
-
-    void update_min(elem* new_min)
-    {
-        if (new_min == _roots)
-        {
-            return;
-        }
-
-        auto new_last = new_min == _last_root ? _last_root->prev_sibling : _last_root;
-        new_min->unlink_from_siblings();
-        _roots->link_sibling_before(new_min);
-        _roots = new_min;
-        _last_root = new_last;
+        _roots.resize(output_iter - _roots.begin());
     }
 
     void _dump_siblings(elem* tree) const
@@ -344,8 +244,8 @@ private:
     //! free list
     FreeListT<T> _free;
     //! first element is the min root
-    elem* _roots;
-    elem* _last_root;
+    std::vector<elem*> _roots;
+    elem* _min;
     std::size_t _size;
 };
 
