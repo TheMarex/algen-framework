@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 
 #ifndef PLAIN_BENCH
     // Add std::priority_queue
-    pq::std_pq<int>::register_contenders(contenders);
+    //pq::std_pq<int>::register_contenders(contenders);
 
 #if defined(__GNUG__) && !(defined(__APPLE_CC__))
     // These are from GNU libstdc++ policy-based datastructures library

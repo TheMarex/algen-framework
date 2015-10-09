@@ -21,12 +21,12 @@ public:
         list.register_contender(Factory("pairing_heap without free list", "pairing-heap-no-fl",
             [](){ return new pairing_heap<T>();}
         ));
-        list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
-            [](){ return new pairing_heap<T, free_list>();}
-        ));
-        list.register_contender(Factory("pairing_heap lazy-shrink free list", "pairing-heap-lazyshrink-fl",
-            [](){ return new pairing_heap<T, ls_free_list>();}
-        ));
+        //list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
+        //    [](){ return new pairing_heap<T, free_list>();}
+        //));
+        //list.register_contender(Factory("pairing_heap lazy-shrink free list", "pairing-heap-lazyshrink-fl",
+        //    [](){ return new pairing_heap<T, ls_free_list>();}
+        //));
     }
 
     /// Add an element to the priority queue by const lvalue reference

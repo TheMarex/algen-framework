@@ -37,15 +37,15 @@ public:
         //list.register_contender(Factory("GNU Binary Heap", "GNU-binary-heap",
         //    [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::binary_heap_tag>();}
         //));
-        list.register_contender(Factory("GNU Binomial Heap", "GNU-binomial-heap",
-            [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::binomial_heap_tag>();}
-        ));
-        list.register_contender(Factory("GNU RC Binomial Heap", "GNU-rc-binomial-heap",
-            [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::rc_binomial_heap_tag>();}
-        ));
-        list.register_contender(Factory("GNU Thin Heap", "GNU-thin-heap",
-            [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::thin_heap_tag>();}
-        ));
+        //List.register_contender(Factory("GNU Binomial Heap", "GNU-binomial-heap",
+        //    [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::binomial_heap_tag>();}
+        //));
+        //List.register_contender(Factory("GNU RC Binomial Heap", "GNU-rc-binomial-heap",
+        //    [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::rc_binomial_heap_tag>();}
+        //));
+        //List.register_contender(Factory("GNU Thin Heap", "GNU-thin-heap",
+        //    [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::thin_heap_tag>();}
+        //));
     }
 
     /// Add an element to the priority queue by const lvalue reference
