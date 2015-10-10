@@ -41,7 +41,8 @@ struct linked_tree
         while (current != nullptr)
         {
             if (current->prev_sibling &&
-                current->prev_sibling->next_sibling != current)
+                current->prev_sibling->next_sibling != current &&
+                current->parent->first_child != current)
                 return false;
             if (current->next_sibling &&
                 current->next_sibling->prev_sibling != current)
