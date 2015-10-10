@@ -280,35 +280,77 @@ SCENARIO("pairing_heap work with complex keys", "[pairing_heap]")
 
 SCENARIO("regression tests", "[pairing_heap]")
 {
-    TestHeapInt pq;
+    TestHeap pq;
+    TestHeapInt pq_signed;
+
+    GIVEN("The push-descrease benchmark seed")
+    {
+        pq.push(0);
+        pq.push(1);
+        pq.push(2);
+        auto h1 = pq.push(222971131);
+        auto h2 = pq.push(3513867340);
+        auto h3 = pq.push(1581535540);
+        auto h4 = pq.push(478793679);
+
+        WHEN("We pop the first three elements")
+        {
+            pq.pop();
+            pq.pop();
+            pq.pop();
+
+            THEN("min and size is correct")
+            {
+                CHECK(pq.top() == 222971131);
+                CHECK(pq.size() == 4);
+            }
+        }
+
+        WHEN("We pop and decrease")
+        {
+            pq.pop();
+            pq.pop();
+            pq.pop();
+            pq.decrease_key(h1, 222971128);
+            pq.decrease_key(h2, 3513867337);
+            pq.decrease_key(h3, 1581535537);
+            pq.decrease_key(h4, 478793676);
+
+            THEN("min and size are correct")
+            {
+                CHECK(pq.top() == 222971128);
+                CHECK(pq.size() == 4);
+            }
+        }
+    }
 
     GIVEN("The random test seed from the microbenchmark")
     {
-        pq.push(222971128);
-        pq.push(-781099959);
-        pq.push(1581535537);
-        pq.push(478793676);
-        pq.push(244574117);
-        pq.push(1677044595);
-        pq.push(2035291173);
-        pq.push(766503359);
+        pq_signed.push(222971128);
+        pq_signed.push(-781099959);
+        pq_signed.push(1581535537);
+        pq_signed.push(478793676);
+        pq_signed.push(244574117);
+        pq_signed.push(1677044595);
+        pq_signed.push(2035291173);
+        pq_signed.push(766503359);
 
         WHEN("We ask for the top element")
         {
-            CHECK(pq.size() == 8);
-            CHECK(pq.top() == -781099959);
+            CHECK(pq_signed.size() == 8);
+            CHECK(pq_signed.top() == -781099959);
         }
 
         WHEN("We remove all elements")
         {
-            pq.pop();
-            pq.pop();
-            pq.pop();
-            pq.pop();
-            pq.pop();
-            pq.pop();
-            pq.pop();
-            pq.pop();
+            pq_signed.pop();
+            pq_signed.pop();
+            pq_signed.pop();
+            pq_signed.pop();
+            pq_signed.pop();
+            pq_signed.pop();
+            pq_signed.pop();
+            pq_signed.pop();
 
             CHECK(pq.size() == 0);
         }
