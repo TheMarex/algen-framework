@@ -3,8 +3,8 @@
 //#include "../pq/nonaddressable_pairing_heap.hpp"
 #include "../pq/addressable_pairing_heap.hpp"
 
-using TestHeap = addressable_pairing_heap<unsigned>;
-using TestHeapInt = addressable_pairing_heap<int>;
+using TestHeap = addressable_pairing_heap<unsigned, std::greater<unsigned>>;
+using TestHeapInt = addressable_pairing_heap<int, std::greater<int>>;
 
 struct ComplexTestKey
 {
@@ -27,10 +27,15 @@ bool operator==(const ComplexTestKey& lhs, const ComplexTestKey& rhs)
 
 bool operator<(const ComplexTestKey& lhs, const ComplexTestKey& rhs)
 {
-    return lhs.a < lhs.a || (lhs.a == rhs.a && lhs.b < rhs.b);
+    return lhs.a < rhs.a || (lhs.a == rhs.a && lhs.b < rhs.b);
 }
 
-using ComplexTestHeap = addressable_pairing_heap<ComplexTestKey>;
+bool operator>(const ComplexTestKey& lhs, const ComplexTestKey& rhs)
+{
+    return lhs.a > rhs.a || (lhs.a == rhs.a && lhs.b > rhs.b);
+}
+
+using ComplexTestHeap = addressable_pairing_heap<ComplexTestKey, std::greater<ComplexTestKey>>;
 
 SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
 {

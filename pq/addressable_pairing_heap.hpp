@@ -9,18 +9,21 @@
 #include <vector>
 
 #include <iterator>
+#include <functional>
 
 #include <iostream>
 
 #include "helper/linked_tree.hpp"
 #include "helper/free_list.hpp"
 
-template<typename T, template<typename S> class FreeListT=malloc_wrapper>
+template<typename T, class Compare = std::less<T>, template<typename S> class FreeListT=malloc_wrapper>
 class addressable_pairing_heap
 {
 public:
     using elem = linked_tree<T>;
-    addressable_pairing_heap() : _min(nullptr), _size(0) {}
+    using handle_type = elem*;
+
+    addressable_pairing_heap() : _top(nullptr), _size(0) {}
     ~addressable_pairing_heap()
     {
         for (auto* r : _roots)
@@ -33,7 +36,7 @@ public:
     const T& top() const
     {
         assert(_size > 0);
-        return _min->key;
+        return _top->key;
     }
 
     /// Add an element to the priority queue by const lvalue reference
@@ -70,8 +73,8 @@ public:
         --_size;
 
         // children are new roots
-        auto* child = _min->first_child;
-        _min->first_child = nullptr;
+        auto* child = _top->first_child;
+        _top->first_child = nullptr;
         while (child != nullptr)
         {
             auto next = child->next_sibling;
@@ -83,11 +86,11 @@ public:
             child = next;
         }
 
-        std::copy_if(_roots.begin(), _roots.end(), _roots.begin(), [this](elem* e) { return e != _min; });
-        // last element is now invalid since we removed _min
+        std::copy_if(_roots.begin(), _roots.end(), _roots.begin(), [this](elem* e) { return e != _top; });
+        // last element is now invalid since we removed _top
         // and copied all other
         _roots.pop_back();
-        _free.release(_min);
+        _free.release(_top);
 
         if (_roots.size() > 0)
         {
@@ -112,9 +115,9 @@ public:
             cut_and_insert(element);
         }
 
-        if (element->key < _min->key)
+        if (_cmp(_top->key, element->key))
         {
-            _min = element;
+            _top = element;
         }
     }
 
@@ -123,9 +126,9 @@ private:
     void insert(elem* new_root)
     {
         _roots.push_back(new_root);
-        if (_size == 0 || new_root->key < _min->key)
+        if (_size == 0 || _cmp(_top->key, new_root->key))
         {
-            _min = new_root;
+            _top = new_root;
         }
         ++_size;
     }
@@ -153,14 +156,14 @@ private:
         _roots.push_back(element);
     }
 
-    /// Merges adjacent roots and updates _min
+    /// Merges adjacent roots and updates _top
     void rake_and_update_roots()
     {
         assert(_roots.size() > 0);
 
         auto output_iter = _roots.begin();
         auto even_iter = _roots.begin();
-        elem* new_min = nullptr;
+        elem* new_top = nullptr;
         while (even_iter != _roots.end() && std::next(even_iter) != _roots.end())
         {
             auto odd_iter = std::next(even_iter);
@@ -171,8 +174,8 @@ private:
             {
                 even_root->link_child(odd_root);
 
-                if (new_min == nullptr || even_root->key < new_min->key)
-                    new_min = even_root;
+                if (new_top == nullptr || _cmp(new_top->key, even_root->key))
+                    new_top = even_root;
 
                 *output_iter = *even_iter;
             }
@@ -180,8 +183,8 @@ private:
             {
                 odd_root->link_child(even_root);
 
-                if (new_min == nullptr || odd_root->key < new_min->key)
-                    new_min = odd_root;
+                if (new_top == nullptr || _cmp(new_top->key, odd_root->key))
+                    new_top = odd_root;
 
                 *output_iter = *odd_iter;
             }
@@ -245,7 +248,8 @@ private:
     FreeListT<T> _free;
     //! first element is the min root
     std::vector<elem*> _roots;
-    elem* _min;
+    elem* _top;
+    Compare _cmp;
     std::size_t _size;
 };
 
