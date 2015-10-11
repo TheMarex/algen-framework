@@ -433,3 +433,61 @@ SCENARIO("regression tests", "[pairing_heap]")
         }
     }
 }
+
+// This class uses features from GNU libstdc++'s policy-base
+// data structures library
+#if defined(__GNUG__) && !(defined(__APPLE_CC__))
+
+#include <ext/pb_ds/priority_queue.hpp>
+
+SCENARIO("Comparing to gnu_pq", "[gnu_pq]")
+{
+    using our_pairing_heap = addressable_pairing_heap<unsigned, std::less<unsigned>>;
+    using gnu_pairing_heap = __gnu_pbds::priority_queue<unsigned, std::less<unsigned>, __gnu_pbds::pairing_heap_tag>;
+
+    our_pairing_heap our_pq;
+    gnu_pairing_heap gnu_pq;
+
+    GIVEN("The same elements in the same order")
+    {
+        our_pq.push(5);
+        our_pq.push(7);
+        our_pq.push(12);
+        our_pq.push(1337);
+        our_pq.push(1);
+        our_pq.push(3);
+
+        gnu_pq.push(5);
+        gnu_pq.push(7);
+        gnu_pq.push(12);
+        gnu_pq.push(1337);
+        gnu_pq.push(1);
+        gnu_pq.push(3);
+
+        WHEN("We check the top elemnts")
+        {
+            THEN("They are the same")
+            {
+                CHECK(gnu_pq.top() == 1337);
+                CHECK(our_pq.top() == 1337);
+            }
+        }
+
+        WHEN("We we remove the top 3 elements")
+        {
+            our_pq.pop();
+            our_pq.pop();
+            our_pq.pop();
+
+            gnu_pq.pop();
+            gnu_pq.pop();
+            gnu_pq.pop();
+            THEN("They top elements are the same")
+            {
+                CHECK(gnu_pq.top() == our_pq.top());
+            }
+        }
+    }
+}
+
+#endif
