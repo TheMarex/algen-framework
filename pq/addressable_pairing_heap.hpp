@@ -260,7 +260,8 @@ private:
 
         _top = new_top;
 
-        _roots.resize(output_iter - _roots.begin());
+        auto new_size = std::distance(_roots.begin(), output_iter);
+        _roots.resize(new_size);
     }
 
     void _dump_state(const char* prefix) const
