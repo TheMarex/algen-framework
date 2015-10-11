@@ -225,7 +225,7 @@ private:
             auto* even_root = *even_iter;
             auto* odd_root = *odd_iter;
 
-            if (odd_root->key > even_root->key)
+            if (_cmp(odd_root->key, even_root->key))
             {
                 even_root->link_child(odd_root);
 
