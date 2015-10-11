@@ -215,16 +215,14 @@ public:
 
     malloc_wrapper() {}
 
-    /// Removes an eleement from the free list.
-    /// If no free elements are available, allocate new.
     tree* get()
     {
-        return new tree();
+        return static_cast<tree*>(::operator new(sizeof(tree)));
     }
 
-    /// Adds elem to the free list
     void release(tree* elem)
     {
-        delete elem;
+        elem->~tree();
+        ::operator delete(elem);
     }
 };
