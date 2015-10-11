@@ -170,6 +170,63 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
                 CHECK(pq.size() == 0);
             }
         }
+
+        WHEN("We increase the key of the top")
+        {
+            // (5), (7), (12), (1337), (1), (3)
+            // pop -> (5: (7)), (12: (1337)), (3)
+            // pop -> (5: (7), (12: 1337))
+            auto* elem = pq.push(5);
+            pq.push(7);
+            pq.push(12);
+            pq.push(1337);
+            pq.push(1);
+            pq.push(3);
+
+            pq.pop();
+            pq.pop();
+
+            THEN("The top after pops is correct")
+            {
+                CHECK(pq.top() == 5);
+            }
+
+            pq.modify(elem, 1338);
+
+            THEN("The top after modify is correct")
+            {
+                CHECK(pq.top() == 7);
+            }
+        }
+
+        WHEN("We increase the key of the an element with children")
+        {
+            // (5), (7), (12), (1337), (1), (3)
+            // pop -> (5: (7)), (12: (1337)), (3)
+            // pop -> (5: (7), (12: 1337))
+            pq.push(5);
+            pq.push(7);
+            auto* elem = pq.push(12);
+            pq.push(1337);
+            pq.push(1);
+            pq.push(3);
+
+            pq.pop();
+            pq.pop();
+
+            THEN("The top after pops is correct")
+            {
+                CHECK(pq.top() == 5);
+            }
+
+            pq.modify(elem, 1338);
+
+            THEN("The top did not change")
+            {
+                CHECK(pq.top() == 5);
+            }
+        }
+
     }
 
     GIVEN("An heap with six elements")
@@ -230,10 +287,25 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
 
         }
 
+        WHEN("We increase the key of the smallest element to be the second largest")
+        {
+            auto* elem = pq.push(0);
+            pq.modify(elem, 2);
+            THEN("The top did not change")
+            {
+                CHECK(pq.top() == 1);
+            }
+            pq.pop();
+            AND_THEN("It is returned as second largest")
+            {
+                CHECK(pq.top() == 2);
+            }
+        }
+
         WHEN("We decrease the key of the largest element to be the second smallest")
         {
             auto* elem = pq.push(9999);
-            pq.decrease_key(elem, 2);
+            pq.modify_up(elem, 2);
             THEN("The top did not change")
             {
                 CHECK(pq.top() == 1);
@@ -251,7 +323,7 @@ SCENARIO("pairing_heap's basic functions work", "[pairing_heap]")
             pq.pop();
             pq.pop();
             pq.pop();
-            pq.decrease_key(elem, 2);
+            pq.modify_up(elem, 2);
             THEN("The top is the new min")
             {
                 CHECK(pq.top() == 2);
@@ -316,10 +388,10 @@ SCENARIO("regression tests", "[pairing_heap]")
             pq.pop();
             pq.pop();
             pq.pop();
-            pq.decrease_key(h1, 222971128);
-            pq.decrease_key(h2, 3513867337);
-            pq.decrease_key(h3, 1581535537);
-            pq.decrease_key(h4, 478793676);
+            pq.modify_up(h1, 222971128);
+            pq.modify_up(h2, 3513867337);
+            pq.modify_up(h3, 1581535537);
+            pq.modify_up(h4, 478793676);
 
             THEN("min and size are correct")
             {

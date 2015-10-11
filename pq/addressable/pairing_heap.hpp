@@ -5,14 +5,18 @@
 
 #include "priority_queue.h"
 
-#include "addressable_pairing_heap.hpp"
-#include "helper/free_list.hpp"
+#include "../addressable_pairing_heap.hpp"
+#include "../helper/free_list.hpp"
 
 namespace pq {
+
+namespace addressable {
 
 template<typename T, template<typename S> class FreeListT=malloc_wrapper>
 class pairing_heap : public priority_queue<T> {
 public:
+    using queue_type = addressable_pairing_heap<T, std::less<T>, FreeListT>;
+
     pairing_heap() : queue() {}
 
     static void register_contenders(common::contender_list<priority_queue<T>> &list) {
@@ -30,18 +34,28 @@ public:
     }
 
     /// Add an element to the priority queue by const lvalue reference
-    void push(const T& value) override {
-        queue.push(value);
+    void* push(const T& value) override {
+        return static_cast<void*>(queue.push(value));
     }
     /// Add an element to the priority queue by rvalue reference (with move)
-    void push(T&& value) override {
-        queue.push(std::move(value));
+    void* push(T&& value) override {
+        return static_cast<void*>(queue.push(std::move(value)));
     }
 
     /// Add an element in-place without copying or moving
     template <typename... Args>
     void emplace(Args&&... args) {
         queue.emplace(std::forward<Args>(args)...);
+    }
+
+    /// Decreases the key of an element
+    void modify_up(void* handle, const T& value) override {
+        queue.modify_up(static_cast<typename queue_type::handle_type>(handle), value);
+    }
+
+    /// Decreases the key of an element
+    void modify(void* handle, const T& value) override {
+        queue.modify(static_cast<typename queue_type::handle_type>(handle), value);
     }
 
     /// Deletes the top element
@@ -60,7 +74,9 @@ public:
     }
 
 protected:
-    addressable_pairing_heap<T, std::less<T>, FreeListT> queue;
+    queue_type queue;
 };
+
+}
 
 }

@@ -7,8 +7,8 @@ CC ?= gcc
 SANITIZER ?= address
 
 COMMONFLAGS = -std=c++1y -Wall -Wextra -Werror
-CFLAGS = ${COMMONFLAGS} -Ofast -DNDEBUG
-DEBUGFLAGS = ${COMMONFLAGS} -O0 -ggdb3
+CFLAGS = ${COMMONFLAGS} -Ofast -DNDEBUG -ggdb3
+DEBUGFLAGS = ${COMMONFLAGS} -O0 -ggdb3 -fsanitize=address
 LDFLAGS = -lpapi -lboost_serialization
 MALLOC_LDFLAGS = -ldl
 
@@ -17,8 +17,8 @@ all: bench_hash bench_pq
 everything: bench_hash bench_pq bench_hash_malloc compare bench_pq_malloc debug_hash debug_pq sanitize_hash sanitize_pq
 
 clean:
-	rm -f *.o bench_hash bench_hash_malloc bench_pq bench_pq_malloc \
-		debug_hash debug_pq sanitize_hash sanitize_pq
+	rm -f *.o bench_hash bench_hash_malloc bench_addr_pq bench_pq bench_pq_malloc \
+		debug_hash debug_pq debug_addr_pq sanitize_hash sanitize_pq
 
 malloc_count.o: malloc_count/malloc_count.c  malloc_count/malloc_count.h
 	$(CC) -Ofast -Wall -Werror -c -o $@ $<
@@ -28,6 +28,9 @@ bench_hash: bench_hash.cpp common/*.h hashtable/*.h
 
 bench_hash_malloc: bench_hash.cpp malloc_count.o common/*.h hashtable/*.h
 	$(CX) $(CFLAGS) -DMALLOC_INSTR -o $@ $< malloc_count.o $(LDFLAGS) $(MALLOC_LDFLAGS)
+
+bench_addr_pq: bench_addr_pq.cpp common/*.h pq/addressable/*.h pq/addressable/*.hpp ./pq/addressable_pairing_heap.hpp
+	$(CX) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 bench_pq: bench_pq.cpp common/*.h pq/*.h pq/*.hpp
 	$(CX) $(CFLAGS) -o $@ $< $(LDFLAGS)
@@ -43,6 +46,9 @@ debug_hash: bench_hash.cpp common/*.h hashtable/*.h
 
 debug_hash_malloc: bench_hash.cpp malloc_count.o common/*.h hashtable/*.h
 	$(CX) $(DEBUGFLAGS) -DMALLOC_INSTR -o $@ $< malloc_count.o $(LDFLAGS) $(MALLOC_LDFLAGS)
+
+debug_addr_pq: bench_addr_pq.cpp common/*.h pq/addressable/*.h pq/addressable/*.hpp ./pq/addressable_pairing_heap.hpp
+	$(CX) $(DEBUGFLAGS) -o $@ $< $(LDFLAGS)
 
 debug_pq: bench_pq.cpp common/*.h pq/*.h
 	$(CX) $(DEBUGFLAGS) -o $@ $< $(LDFLAGS)

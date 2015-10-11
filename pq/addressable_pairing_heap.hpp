@@ -16,6 +16,9 @@
 #include "helper/linked_tree.hpp"
 #include "helper/free_list.hpp"
 
+#define LOGGING 0
+#define LOG_STATE(_X) if (LOGGING) { _dump_state(_X); }
+
 template<typename T, class Compare = std::less<T>, template<typename S> class FreeListT=malloc_wrapper>
 class addressable_pairing_heap
 {
@@ -51,8 +54,12 @@ public:
     /// Add an element to the priority queue by rvalue reference (with move)
     elem* push(T&& value)
     {
+        LOG_STATE("> push");
+
         auto* new_root = new(_free.get()) elem(value);
         insert(new_root);
+
+        LOG_STATE("< push");
 
         return new_root;
     }
@@ -69,6 +76,8 @@ public:
 
     void pop()
     {
+        LOG_STATE("> pop");
+
         assert(_size > 0);
         --_size;
 
@@ -94,8 +103,11 @@ public:
 
         if (_roots.size() > 0)
         {
+            LOG_STATE("> rake");
             rake_and_update_roots();
         }
+
+        LOG_STATE("< pop");
     }
 
     /// Get the number of elements in the priority queue
@@ -104,21 +116,87 @@ public:
         return _size;
     }
 
-    /// decreases the key of the given element
-    void decrease_key(elem* element, const T& key)
+    /// Modifies the key of the given element so that it moves towards the top
+    /// Only supports updates with Compare(old_key, new_key)
+    void modify_up(elem* element, const T& key)
     {
-        assert(key <= element->key);
-        element->key = key;
+        LOG_STATE("> modify_up");
+        assert(_cmp(element->key, key) || element->key == key);
 
         if (element->parent != nullptr)
         {
-            cut_and_insert(element);
+            element->unlink_from_parent();
+            _roots.push_back(element);
         }
+        element->key = key;
 
         if (_cmp(_top->key, element->key))
         {
             _top = element;
         }
+        LOG_STATE("< modify_up");
+    }
+
+    /// modifies the key of the given element
+    void modify(elem* element, const T& key)
+    {
+        LOG_STATE("> modify");
+
+        if (_cmp(element->key, key))
+        {
+            modify_up(element, key);
+            return;
+        }
+        assert(!_cmp(element->key, key));
+        element->key = key;
+
+        // is a root element
+        if (element->parent == nullptr)
+        {
+            for (elem *child = element->first_child, *next = nullptr;
+                 child != nullptr;
+                 child = next)
+            {
+                next = child->next_sibling;
+
+                // heap property violated
+                // move child up to parent
+                if (_cmp(element->key, child->key))
+                {
+                    child->unlink_from_parent();
+                    _roots.push_back(child);
+                }
+            }
+
+            rake_and_update_roots();
+        }
+        else
+        {
+            auto* grandfather = element->parent;
+            for (elem *child = element->first_child, *next = nullptr;
+                 child != nullptr;
+                 child = next)
+            {
+                next = child->next_sibling;
+
+                // heap property violated
+                // move child up to parent
+                if (_cmp(element->key, child->key))
+                {
+                    child->unlink_from_parent();
+                    grandfather->link_child(child);
+                }
+            }
+
+            element->unlink_from_parent();
+            _roots.push_back(element);
+            if (_cmp(_top->key, element->key))
+            {
+                _top = element;
+            }
+        }
+
+        LOG_STATE("< modify");
     }
 
 private:
@@ -131,29 +209,6 @@ private:
             _top = new_root;
         }
         ++_size;
-    }
-
-    /// cut subtree from
-    void cut_and_insert(elem* element)
-    {
-        assert(element->parent != nullptr);
-
-        // is first child of the parent
-        if (element->parent->first_child == element)
-        {
-            auto next = element->next_sibling;
-            element->parent->first_child = next;
-            if (next) next->parent = element->parent;
-            element->next_sibling = nullptr;
-            element->prev_sibling = nullptr;
-        }
-        else
-        {
-            element->unlink_from_siblings();
-        }
-
-        // FIXME benchmark front/back
-        _roots.push_back(element);
     }
 
     /// Merges adjacent roots and updates _top
@@ -196,26 +251,22 @@ private:
         // handle the last root
         if (even_iter != _roots.end())
         {
-            if (new_min == nullptr || (*even_iter)->key < new_min->key)
-                new_min = *even_iter;
+            if (new_top == nullptr || _cmp(new_top->key, (*even_iter)->key))
+                new_top = *even_iter;
 
             *output_iter = *even_iter;
             ++output_iter;
         }
 
-        _min = new_min;
+        _top = new_top;
 
         _roots.resize(output_iter - _roots.begin());
     }
 
-    void _dump_siblings(elem* tree) const
+    void _dump_state(const char* prefix) const
     {
-        std::cout << "-> " << tree << std::endl;
-        while (tree != nullptr && tree->next_sibling != tree)
-        {
-            std::cout << "(" << tree->prev_sibling << " <- " << tree << " -> " << tree->next_sibling << ")";
-            tree = tree->next_sibling;
-        }
+        std::cout << prefix << " : ";
+        std::for_each(_roots.begin(), _roots.end(), [this](elem* e) {_dump_tree(e); std::cout << ", "; });
         std::cout << std::endl;
     }
 

@@ -87,8 +87,11 @@ struct linked_tree
     }
 
     /// Removes element form siblings list
+    /// Needs to be a middle sibling for this to work!
     void unlink_from_siblings()
     {
+        assert(parent == nullptr || this != parent->first_child);
+
         auto* old_prev = prev_sibling;
         auto* old_next = next_sibling;
 
@@ -102,6 +105,25 @@ struct linked_tree
                next_sibling == nullptr);
 
         assert(old_prev->is_valid());
+    }
+
+    /// Unlinks child from parent
+    void unlink_from_parent()
+    {
+        assert(parent != nullptr);
+
+        // is first child of the parent
+        if (parent->first_child == this)
+        {
+            parent->first_child = next_sibling;
+            if (next_sibling) next_sibling->parent = parent;
+            next_sibling = nullptr;
+            prev_sibling = nullptr;
+        }
+        else
+        {
+            unlink_from_siblings();
+        }
     }
 
     void link_child(tree* new_elem)
