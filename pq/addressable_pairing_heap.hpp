@@ -95,17 +95,12 @@ public:
             child = next;
         }
 
-        std::copy_if(_roots.begin(), _roots.end(), _roots.begin(), [this](elem* e) { return e != _top; });
+        LOG_STATE("> rake");
+        auto old_top = _top;
+        rake_and_update_roots(old_top);
         // last element is now invalid since we removed _top
         // and copied all other
-        _roots.pop_back();
-        _free.release(_top);
-
-        if (_roots.size() > 0)
-        {
-            LOG_STATE("> rake");
-            rake_and_update_roots();
-        }
+        _free.release(old_top);
 
         LOG_STATE("< pop");
     }
@@ -168,7 +163,7 @@ public:
                 }
             }
 
-            rake_and_update_roots();
+            rake_and_update_roots(nullptr);
         }
         else
         {
@@ -212,16 +207,27 @@ private:
     }
 
     /// Merges adjacent roots and updates _top
-    void rake_and_update_roots()
+    void rake_and_update_roots(elem* old_top)
     {
         assert(_roots.size() > 0);
 
         auto output_iter = _roots.begin();
         auto even_iter = _roots.begin();
+        auto odd_iter = even_iter == _roots.end() ? _roots.end() : std::next(even_iter);
         elem* new_top = nullptr;
-        while (even_iter != _roots.end() && std::next(even_iter) != _roots.end())
+        while (odd_iter != _roots.end())
         {
-            auto odd_iter = std::next(even_iter);
+            if (*even_iter == old_top)
+            {
+                even_iter = odd_iter;
+                odd_iter = std::next(odd_iter);
+                continue;
+            }
+            else if (*odd_iter == old_top)
+            {
+                odd_iter = std::next(odd_iter);
+                continue;
+            }
             auto* even_root = *even_iter;
             auto* odd_root = *odd_iter;
 
@@ -246,10 +252,11 @@ private:
 
             ++output_iter;
             even_iter = std::next(odd_iter);
+            odd_iter = even_iter == _roots.end() ? _roots.end() : std::next(even_iter);
         }
 
         // handle the last root
-        if (even_iter != _roots.end())
+        if (even_iter != _roots.end() && *even_iter != old_top)
         {
             if (new_top == nullptr || _cmp(new_top->key, (*even_iter)->key))
                 new_top = *even_iter;
@@ -262,6 +269,8 @@ private:
 
         auto new_size = std::distance(_roots.begin(), output_iter);
         _roots.resize(new_size);
+
+        assert(std::all_of(_roots.begin(), _roots.end(), [old_top](elem* e) { return e != old_top; }));
     }
 
     void _dump_state(const char* prefix) const
