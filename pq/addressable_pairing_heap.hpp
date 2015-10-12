@@ -18,6 +18,7 @@
 
 #define LOGGING 0
 #define LOG_STATE(_X) if (LOGGING) { _dump_state(_X); }
+#define LOG_MSG(_X) if (LOGGING) { std::cout << _X << std::endl; }
 
 template<typename T, class Compare = std::less<T>, template<typename S> class FreeListT=malloc_wrapper>
 class addressable_pairing_heap
@@ -38,11 +39,11 @@ public:
     /// Retrieves the top element
     const T& top()
     {
-        if (!_valid_top)
+        if (_top == nullptr)
         {
             update_top();
         }
-        assert(_valid_top);
+        assert(_top != nullptr);
 
         return _top->key;
     }
@@ -83,13 +84,18 @@ public:
     {
         LOG_STATE("> pop");
 
-        if (!_valid_top)
+        if (_top == nullptr)
         {
             update_top();
         }
+        assert(_top != nullptr);
 
         assert(_size > 0);
         --_size;
+
+        // remove _top from _roots
+        std::copy_if(_roots.begin(), _roots.end(), _roots.begin(), [this](elem* root) { return root != _top; });
+        _roots.pop_back();
 
         // children are new roots
         auto* child = _top->first_child;
@@ -105,12 +111,8 @@ public:
             child = next;
         }
 
-        LOG_STATE("> rake");
-        auto old_top = _top;
-        rake_roots(old_top);
-        // last element is now invalid since we removed _top
-        // and copied all other
-        _free.release(old_top);
+        _free.release(_top);
+        _top = nullptr;
 
         LOG_STATE("< pop");
     }
@@ -134,7 +136,7 @@ public:
             _roots.push_back(element);
         }
         element->key = key;
-        _valid_top = false;
+        _top = nullptr;
 
         LOG_STATE("< modify_up");
     }
@@ -192,7 +194,7 @@ public:
             _roots.push_back(element);
         }
 
-        _valid_top = false;
+        _top = nullptr;
 
         LOG_STATE("< modify");
     }
@@ -202,49 +204,23 @@ private:
     void insert(elem* new_root)
     {
         _roots.push_back(new_root);
-        _valid_top = false;
+        _top = nullptr;
         ++_size;
     }
 
-    /// updates the top variable and clears the flag
+    /// Merges adjacent roots and updates _top
     void update_top()
     {
-        assert(_size > 0);
-        assert(_roots.size() > 0);
+        LOG_STATE("> update_top");
 
-        _top = _roots.front();
-        std::for_each(std::next(_roots.begin()), _roots.end(),
-                      [this](elem* e)
-                      {
-                          if (_cmp(_top->key, e->key))
-                          {
-                              _top = e;
-                          }
-                      });
-        _valid_top = true;
-    }
-
-    /// Merges adjacent roots and updates _top
-    void rake_roots(elem* to_remove)
-    {
         assert(_roots.size() > 0);
 
         auto output_iter = _roots.begin();
         auto even_iter = _roots.begin();
         auto odd_iter = even_iter == _roots.end() ? _roots.end() : std::next(even_iter);
+        _top = nullptr;
         while (odd_iter != _roots.end())
         {
-            if (*even_iter == to_remove)
-            {
-                even_iter = odd_iter;
-                odd_iter = std::next(odd_iter);
-                continue;
-            }
-            else if (*odd_iter == to_remove)
-            {
-                odd_iter = std::next(odd_iter);
-                continue;
-            }
             auto* even_root = *even_iter;
             auto* odd_root = *odd_iter;
 
@@ -252,11 +228,17 @@ private:
             {
                 even_root->link_child(odd_root);
 
+                if (_top == nullptr || _cmp(_top->key, even_root->key))
+                    _top = even_root;
+
                 *output_iter = *even_iter;
             }
             else
             {
                 odd_root->link_child(even_root);
+
+                if (_top == nullptr || _cmp(_top->key, odd_root->key))
+                    _top = odd_root;
 
                 *output_iter = *odd_iter;
             }
@@ -267,8 +249,11 @@ private:
         }
 
         // handle the last root
-        if (even_iter != _roots.end() && *even_iter != to_remove)
+        if (even_iter != _roots.end())
         {
+            if (_top == nullptr || _cmp(_top->key, (*even_iter)->key))
+                _top = *even_iter;
+
             *output_iter = *even_iter;
             ++output_iter;
         }
@@ -276,8 +261,8 @@ private:
         auto new_size = std::distance(_roots.begin(), output_iter);
         _roots.resize(new_size);
 
-        _valid_top = false;
-        assert(std::all_of(_roots.begin(), _roots.end(), [to_remove](elem* e) { return e != to_remove; }));
+        LOG_STATE("< update_top");
+        LOG_MSG("  top: " << _top << "(" << _top->key << ")");
     }
 
     void _dump_state(const char* prefix) const
@@ -317,7 +302,6 @@ private:
     //! first element is the min root
     std::vector<elem*> _roots;
     elem* _top;
-    bool _valid_top;
     Compare _cmp;
     std::size_t _size;
 };
