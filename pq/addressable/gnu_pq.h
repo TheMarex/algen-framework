@@ -37,6 +37,9 @@ public:
         list.register_contender(Factory("GNU Pairing Heap", "GNU-pairing-heap",
             [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::pairing_heap_tag>();}
         ));
+        list.register_contender(Factory("GNU Binary Heap", "GNU-binary-heap",
+            [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::binary_heap_tag>();}
+        ));
     }
 
     /// Add an element to the priority queue by const lvalue reference
@@ -50,17 +53,68 @@ public:
 
     /// Modify the key of an element
     void modify(void* handle, const T& value) override {
-        queue.modify(typename queue_type::point_iterator {
-                         static_cast<internal_handle>(handle)
-                     }, value);
+        queue.modify(typename queue_type::point_iterator {static_cast<internal_handle>(handle)}, value);
     }
 
     /// Modify the key of an element
     /// FIXME GNU PQ does not offer specialized handling for this case
     void modify_up(void* handle, const T& value) override {
-        queue.modify(typename queue_type::point_iterator {
-                         static_cast<internal_handle>(handle)
-                     }, value);
+        modify(handle, value);
+    }
+
+    /// Add an element in-place without copying or moving
+    template <typename... Args>
+    void emplace(Args&&... args) {
+        queue.emplace(std::forward<Args>(args)...);
+    }
+
+    /// Deletes the top element
+    void pop() override {
+        queue.pop();
+    }
+
+    /// Retrieves the top element
+    const T& top() override {
+        return queue.top();
+    }
+
+    /// Get the number of elements in the priority queue
+    size_t size() override {
+        return queue.size();
+    }
+
+protected:
+    queue_type queue;
+};
+
+
+template<typename T, typename Cmp_Fn, typename Allocator>
+class gnu_pq<T, Cmp_Fn, __gnu_pbds::binary_heap_tag, Allocator> : public priority_queue<T> {
+public:
+    using queue_type = __gnu_pbds::priority_queue<T, Cmp_Fn, __gnu_pbds::binary_heap_tag, Allocator>;
+    using internal_handle = decltype(typename queue_type::point_iterator().m_p_e);
+    gnu_pq() : queue() {}
+
+    virtual ~gnu_pq() { };
+
+    /// Add an element to the priority queue by const lvalue reference
+    void* push(const T& value) override {
+        return static_cast<void*>(queue.push(value).m_p_e);
+    }
+    /// Add an element to the priority queue by rvalue reference (with move)
+    void* push(T&& value) override {
+        return static_cast<void*>(queue.push(std::move(value)).m_p_e);
+    }
+
+    /// Modify the key of an element
+    void modify(void* handle, const T& value) override {
+        queue.modify(typename queue_type::point_iterator {static_cast<internal_handle>(handle)}, value);
+    }
+
+    /// Modify the key of an element
+    /// FIXME GNU PQ does not offer specialized handling for this case
+    void modify_up(void* handle, const T& value) override {
+        modify(handle, value);
     }
 
     /// Add an element in-place without copying or moving
