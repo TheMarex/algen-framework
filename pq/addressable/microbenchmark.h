@@ -41,15 +41,44 @@ public:
         return nullptr;
     }
 
-    template <int qfactor=1, int dfactor=1>
-    static void* fill_both_random(PQ &queue, Configuration config, void* data) {
-        fill_heap_random<qfactor>(queue, config, data);
-        config.second++; // "new" seed
-        return fill_data_random<dfactor>(queue, config, data);
+    struct heap_data
+    {
+        std::vector<void*> handles;
+        T* data;
+    };
+
+    template <int factor = 1, int pops = 1>
+    static void* fill_heap_random(PQ& queue, Configuration config, void*) {
+        auto* data = new heap_data();
+
+        std::mt19937 random{config.second};
+        size_t size = factor * config.first;
+        for (size_t i = 0; i < size; ++i)
+        {
+            data->handles.push_back(queue.push(random()));
+        }
+        return common::util::fill_data_random<T>(
+            factor*config.first, config.second);
+        return static_cast<void*>(data);
+    }
+
+    template <int factor = 1, int pops = 1>
+    static void* fill_heap_random_and_pop(PQ& queue, Configuration config, void* cb)
+    {
+        void* data = fill_both_random(queue, config, cb);
+
+        for (size_t i = 0; i < pops; ++i)
+        {
+            assert(queue.top() + 1 > queue.top());
+            queue.push(queue.top() + 1);
+            queue.pop();
+        }
+
+        return data;
     }
 
     static void clear_data(PQ&, Configuration, void* data) {
-        common::util::delete_data<T>(data);
+        delete static_cast<heap_data*>(data);
     }
 
     static void register_benchmarks(common::contender_list<Benchmark> &benchmarks) {
@@ -77,30 +106,14 @@ public:
                 }
             }, microbenchmark::clear_data, configs, benchmarks);
 
-        common::register_benchmark("push^n push^3 pop^3 modify^n", "p^3 p^n p^3 m^n",
-            microbenchmark::fill_data_random<2>,
+        common::register_benchmark("modify^n on filled heap", "filled-m^n",
+            microbenchmark::fill_heap_random<1>,
             [](PQ &queue, Configuration config, void* ptr) {
-                T* data = static_cast<T*>(ptr);
+                heap_data* data = static_cast<heap_data*>(ptr);
                 size_t size = config.first;
-                std::vector<typename PQ::handle_type> handles(size);
-                for (size_t i = 0; i < size; ++i) {
-                    handles[i] = queue.push(data[i]);
-                }
-
-                // create some structure in the heap
-                // check for overflows
-                assert(queue.top() + 1 > queue.top());
-                queue.push(queue.top() + 1);
-                assert(queue.top() + 1 > queue.top());
-                queue.push(queue.top() + 1);
-                assert(queue.top() + 1 > queue.top());
-                queue.push(queue.top() + 1);
-                queue.pop();
-                queue.pop();
-                queue.pop();
 
                 for (size_t i = 0; i < size; ++i) {
-                    queue.modify(handles[i], data[size + i]);
+                    queue.modify(data->handles[i], data->data[i]);
                 }
             }, microbenchmark::clear_data, configs, benchmarks);
     }
