@@ -68,6 +68,18 @@ public:
                     queue.pop();
             }, configs, benchmarks);
 
+        common::register_benchmark("push^n pop^3", "p^n-p^3",
+            microbenchmark::fill_data_random<1>,
+            [](PQ &queue, Configuration config, void* ptr) {
+                T* data = static_cast<T*>(ptr);
+                for (size_t i = 0; i < config.first; ++i) {
+                    queue.push(data[i]);
+                }
+                for (size_t i = 0; i < 3; ++i) {
+                    queue.pop();
+                }
+            }, microbenchmark::clear_data, configs, benchmarks);
+
         common::register_benchmark("push-pop-mix on full heap", "push-pop-mix",
             microbenchmark::fill_both_random<1>,
             [](PQ &queue, Configuration config, void* ptr) {
