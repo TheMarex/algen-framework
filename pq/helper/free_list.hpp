@@ -21,7 +21,12 @@ public:
     ~lazyshrink_free_list()
     {
         _size = 0;
-        shrink_to_fit();
+        while (_first != nullptr)
+        {
+            auto* elem = pop();
+            elem->~tree();
+            ::operator delete(elem);
+        }
     }
 
     /// Removes an eleement from the free list.
@@ -34,7 +39,7 @@ public:
         if (_first == nullptr)
         {
             _capacity++;
-            elem = new tree();
+            elem = static_cast<tree*>(::operator new(sizeof(tree)));
         }
         else
         {
@@ -52,11 +57,16 @@ public:
     {
         assert(_size > 0);
         _size--;
-        push(elem);
 
         if (_size * SHRINKFACTOR < _capacity)
         {
-            shrink_to_fit();
+            _capacity--;
+            elem->~tree();
+            ::operator delete(elem);
+        }
+        else
+        {
+            push(elem);
         }
     }
 
@@ -64,23 +74,6 @@ public:
     std::size_t free() const
     {
         return _capacity - _size;
-    }
-
-    /// Removed elements so that _size == _capacity
-    void shrink_to_fit()
-    {
-        auto* elem = _first;
-        while (elem != nullptr)
-        {
-            auto* next = elem->next_sibling;
-            delete elem;
-            elem = next;
-        }
-        _first = elem;
-        _capacity = _size;
-
-        assert(_capacity == _size);
-        assert(_first == nullptr);
     }
 
 private:
