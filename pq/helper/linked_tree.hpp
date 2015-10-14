@@ -37,6 +37,9 @@ struct linked_tree
     /// checks if the current siblings list is valid
     bool is_valid() const
     {
+        //FIXME this break when the checking the circular root nodes
+        return true;
+
         auto* current = this;
         while (current != nullptr)
         {

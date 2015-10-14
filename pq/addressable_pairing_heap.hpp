@@ -27,12 +27,21 @@ public:
     using elem = linked_tree<T>;
     using handle_type = elem*;
 
-    addressable_pairing_heap() : _top(nullptr), _size(0) {}
+    addressable_pairing_heap() : _top(nullptr), _size(0)
+    {
+        // make linked list circular
+        _roots.next_sibling = &_roots;
+        _roots.prev_sibling = &_roots;
+    }
+
     ~addressable_pairing_heap()
     {
-        for (auto* r : _roots)
+        auto* tree = _roots.next_sibling;
+        while (tree != &_roots)
         {
-            _free.release(r);
+            auto* next = tree->next_sibling;
+            _free.release(tree);
+            tree = next;
         }
     }
 
@@ -89,13 +98,12 @@ public:
             update_top();
         }
         assert(_top != nullptr);
-
         assert(_size > 0);
         --_size;
 
-        // remove _top from _roots
-        std::copy_if(_roots.begin(), _roots.end(), _roots.begin(), [this](elem* root) { return root != _top; });
-        _roots.pop_back();
+        // remove _top from linked list
+        _top->next_sibling->prev_sibling = _top->prev_sibling;
+        _top->prev_sibling->next_sibling = _top->next_sibling;
 
         // children are new roots
         auto* child = _top->first_child;
@@ -106,8 +114,7 @@ public:
             child->prev_sibling = nullptr;
             child->next_sibling = nullptr;
 
-            // FIXME benchmark front/back
-            _roots.push_back(child);
+            append_root(child);
             child = next;
         }
 
@@ -130,12 +137,11 @@ public:
         LOG_STATE("> modify_up");
         assert(_cmp(element->key, key) || element->key == key);
 
-        if (element->parent != nullptr)
-        {
-            element->unlink_from_parent();
-            _roots.push_back(element);
-        }
         element->key = key;
+
+        // this even works for roots because of the shared prev/parent ptr
+        element->unlink_from_parent();
+        append_root(element);
         _top = nullptr;
 
         LOG_STATE("< modify_up");
@@ -154,46 +160,23 @@ public:
         assert(!_cmp(element->key, key));
         element->key = key;
 
-        // is a root element
-        if (element->parent == nullptr)
+        for (elem *child = element->first_child, *next = nullptr;
+             child != nullptr;
+             child = next)
         {
-            for (elem *child = element->first_child, *next = nullptr;
-                 child != nullptr;
-                 child = next)
-            {
-                next = child->next_sibling;
+            next = child->next_sibling;
 
-                // heap property violated
-                // move child up to parent
-                if (_cmp(element->key, child->key))
-                {
-                    child->unlink_from_parent();
-                    _roots.push_back(child);
-                }
+            // heap property violated
+            // move child up to parent
+            if (_cmp(element->key, child->key))
+            {
+                child->unlink_from_parent();
+                append_root(child);
             }
         }
-        else
-        {
-            auto* grandfather = element->parent;
-            for (elem *child = element->first_child, *next = nullptr;
-                 child != nullptr;
-                 child = next)
-            {
-                next = child->next_sibling;
 
-                // heap property violated
-                // move child up to parent
-                if (_cmp(element->key, child->key))
-                {
-                    child->unlink_from_parent();
-                    grandfather->link_child(child);
-                }
-            }
-
-            element->unlink_from_parent();
-            _roots.push_back(element);
-        }
-
+        element->unlink_from_parent();
+        append_root(element);
         _top = nullptr;
 
         LOG_STATE("< modify");
@@ -203,63 +186,68 @@ private:
     /// insert new element into heap
     void insert(elem* new_root)
     {
-        _roots.push_back(new_root);
+        append_root(new_root);
+
         _top = nullptr;
         ++_size;
+    }
+
+    /// Appends a new root at the end
+    /// Make sure to invalidate _top afterwards
+    void append_root(elem* new_root)
+    {
+        assert(_roots.prev_sibling->next_sibling == &_roots);
+
+        _roots.prev_sibling->next_sibling = new_root;
+        new_root->prev_sibling = _roots.prev_sibling;
+        new_root->next_sibling = &_roots;
+        _roots.prev_sibling = new_root;
+
+        assert(_roots.prev_sibling->next_sibling == &_roots);
     }
 
     /// Merges adjacent roots and updates _top
     void update_top()
     {
         LOG_STATE("> update_top");
+        assert(_top == nullptr);
 
-        assert(_roots.size() > 0);
-
-        auto output_iter = _roots.begin();
-        auto even_iter = _roots.begin();
-        auto odd_iter = even_iter == _roots.end() ? _roots.end() : std::next(even_iter);
-        _top = nullptr;
-        while (odd_iter != _roots.end())
+        auto* even_root = _roots.next_sibling;
+        while (even_root != &_roots && even_root->next_sibling != &_roots)
         {
-            auto* even_root = *even_iter;
-            auto* odd_root = *odd_iter;
+            auto* odd_root = even_root->next_sibling;
+            auto* next_even_root = odd_root->next_sibling;
 
             if (_cmp(odd_root->key, even_root->key))
             {
+                even_root->next_sibling = next_even_root;
+                next_even_root->prev_sibling = even_root;
+
+                // prev_sibling and next_sibling is always overwritten by link_child
                 even_root->link_child(odd_root);
 
                 if (_top == nullptr || _cmp(_top->key, even_root->key))
                     _top = even_root;
-
-                *output_iter = *even_iter;
             }
             else
             {
+                odd_root->prev_sibling = even_root->prev_sibling;
+                even_root->prev_sibling->next_sibling = odd_root;
+
+                // prev_sibling and next_sibling is always overwritten by link_child
                 odd_root->link_child(even_root);
 
                 if (_top == nullptr || _cmp(_top->key, odd_root->key))
                     _top = odd_root;
-
-                *output_iter = *odd_iter;
             }
 
-            ++output_iter;
-            even_iter = std::next(odd_iter);
-            odd_iter = even_iter == _roots.end() ? _roots.end() : std::next(even_iter);
+            even_root = next_even_root;
         }
 
-        // handle the last root
-        if (even_iter != _roots.end())
+        if (even_root != &_roots && (_top == nullptr || _cmp(_top->key, even_root->key)))
         {
-            if (_top == nullptr || _cmp(_top->key, (*even_iter)->key))
-                _top = *even_iter;
-
-            *output_iter = *even_iter;
-            ++output_iter;
+            _top = even_root;
         }
-
-        auto new_size = std::distance(_roots.begin(), output_iter);
-        _roots.resize(new_size);
 
         LOG_STATE("< update_top");
         LOG_MSG("  top: " << _top << "(" << _top->key << ")");
@@ -268,7 +256,14 @@ private:
     void _dump_state(const char* prefix) const
     {
         std::cout << prefix << " : ";
-        std::for_each(_roots.begin(), _roots.end(), [this](elem* e) {_dump_tree(e); std::cout << ", "; });
+        auto* tree = _roots.next_sibling;
+        while (tree != &_roots)
+        {
+            std::cout << "(" << tree->key << ": ";
+            _dump_tree(tree->first_child);
+            std::cout << "), ";
+            tree = tree->next_sibling;
+        }
         std::cout << std::endl;
     }
 
@@ -299,8 +294,9 @@ private:
 private:
     //! free list
     FreeListT<T> _free;
-    //! first element is the min root
-    std::vector<elem*> _roots;
+    //! dual linked list of roots, this is the senitel
+    elem _roots;
+    //! lazy-updated pointer to top element, nullptr if not set
     elem* _top;
     Compare _cmp;
     std::size_t _size;
