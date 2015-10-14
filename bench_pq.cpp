@@ -74,14 +74,14 @@ int main(int argc, char** argv) {
 #if defined(__GNUG__) && !(defined(__APPLE_CC__))
     // These are from GNU libstdc++ policy-based datastructures library
     // Only use if available
-    pq::gnu_pq<int>::register_contenders(contenders);
+    //pq::gnu_pq<int>::register_contenders(contenders);
 #endif
 #endif
 
     // Register Benchmarks
     common::contender_list<Benchmark> benchmarks;
     pq::microbenchmark<PQ>::register_benchmarks(benchmarks);
-    pq::heapsort<PQ>::register_benchmarks(benchmarks);
+    //pq::heapsort<PQ>::register_benchmarks(benchmarks);
 
     // Register instrumentations
     common::contender_list<common::instrumentation> instrumentations;

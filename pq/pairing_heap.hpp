@@ -6,11 +6,14 @@
 #include "priority_queue.h"
 
 #include "addressable_pairing_heap.hpp"
+#include "addressable_pairing_heap_vector.hpp"
 #include "helper/free_list.hpp"
 
 namespace pq {
 
-template<typename T, template<typename S> class FreeListT=malloc_wrapper>
+template<typename T,
+         template<typename T0, typename C, template<typename S0> class F> class PairingHeapT=addressable_pairing_heap,
+         template<typename S> class FreeListT=malloc_wrapper>
 class pairing_heap : public priority_queue<T> {
 public:
     pairing_heap() : queue() {}
@@ -20,6 +23,9 @@ public:
 
         list.register_contender(Factory("pairing_heap without free list", "pairing-heap-no-fl",
             [](){ return new pairing_heap<T>();}
+        ));
+        list.register_contender(Factory("vector based pairing_heap without free list", "vector-pairing-heap-no-fl",
+            [](){ return new pairing_heap<T, addressable_pairing_heap_vector>();}
         ));
         //list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
         //    [](){ return new pairing_heap<T, free_list>();}
@@ -60,7 +66,7 @@ public:
     }
 
 protected:
-    addressable_pairing_heap<T, std::less<T>, FreeListT> queue;
+    PairingHeapT<T, std::less<T>, FreeListT> queue;
 };
 
 }
