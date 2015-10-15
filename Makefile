@@ -17,7 +17,7 @@ all: bench_hash bench_pq
 everything: bench_hash bench_pq bench_hash_malloc compare bench_pq_malloc debug_hash debug_pq sanitize_hash sanitize_pq
 
 clean:
-	rm -f *.o bench_hash bench_hash_malloc bench_addr_pq bench_pq bench_pq_malloc \
+	rm -f *.o bench_hash bench_hash_malloc bench_addr_pq bench_addr_pq_dijk bench_pq bench_pq_malloc \
 		debug_hash debug_pq debug_addr_pq sanitize_hash sanitize_pq
 
 malloc_count.o: malloc_count/malloc_count.c  malloc_count/malloc_count.h
@@ -30,6 +30,9 @@ bench_hash_malloc: bench_hash.cpp malloc_count.o common/*.h hashtable/*.h
 	$(CX) $(CFLAGS) -DMALLOC_INSTR -o $@ $< malloc_count.o $(LDFLAGS) $(MALLOC_LDFLAGS)
 
 bench_addr_pq: bench_addr_pq.cpp common/*.h pq/addressable/*.h pq/addressable/*.hpp ./pq/addressable_pairing_heap.hpp
+	$(CX) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+bench_addr_pq_dijk: bench_addr_pq_dijk.cpp common/*.h pq/addressable/*.h pq/addressable/*.hpp ./pq/addressable_pairing_heap.hpp
 	$(CX) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 bench_pq: bench_pq.cpp common/*.h pq/*.h pq/*.hpp
