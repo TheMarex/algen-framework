@@ -14,13 +14,15 @@ namespace pq {
 namespace addressable {
 
 template<typename T,
-         typename Cmp_Fn = std::less<T>,
+         class Cmp_Fn = std::less<T>,
          typename Tag = __gnu_pbds::pairing_heap_tag,
          typename Allocator = std::allocator<char>>
-class gnu_pq : public priority_queue<T> {
+class gnu_pq : public priority_queue<T, Cmp_Fn> {
 public:
     using queue_type = __gnu_pbds::priority_queue<T, Cmp_Fn, Tag, Allocator>;
     using internal_handle = decltype(typename queue_type::point_iterator().m_p_nd);
+    using comparator_type = Cmp_Fn;
+
     gnu_pq() : queue() {}
 
     virtual ~gnu_pq() {
@@ -31,11 +33,11 @@ public:
         }
     };
 
-    static void register_contenders(common::contender_list<priority_queue<T>> &list) {
-        using Factory = common::contender_factory<priority_queue<T>>;
+    static void register_contenders(common::contender_list<priority_queue<T, Cmp_Fn>> &list) {
+        using Factory = common::contender_factory<priority_queue<T, Cmp_Fn>>;
         // The pairing heap has a recursive destructor, be careful
         list.register_contender(Factory("GNU Pairing Heap", "GNU-pairing-heap",
-            [](){ return new gnu_pq<T, std::less<T>, __gnu_pbds::pairing_heap_tag>();}
+            [](){ return new gnu_pq<T, Cmp_Fn, __gnu_pbds::pairing_heap_tag>();}
         ));
     }
 
@@ -80,9 +82,16 @@ public:
         return queue.size();
     }
 
+    /// Returns a pointer to the comparator used
+    void* get_comparator() override {
+        return static_cast<void*>(&queue.get_cmp_fn());
+    }
+
 protected:
     queue_type queue;
 };
+
+}
 
 }
 

@@ -26,6 +26,7 @@ class addressable_pairing_heap
 public:
     using elem = linked_tree<T>;
     using handle_type = elem*;
+    using comparator_type = Compare;
 
     addressable_pairing_heap() : _top(nullptr), _size(0)
     {
@@ -182,6 +183,11 @@ public:
         LOG_STATE("< modify");
     }
 
+    comparator_type& get_comparator()
+    {
+        return _cmp;
+    }
+
 private:
     /// insert new element into heap
     void insert(elem* new_root)
@@ -298,7 +304,7 @@ private:
     elem _roots;
     //! lazy-updated pointer to top element, nullptr if not set
     elem* _top;
-    Compare _cmp;
+    comparator_type _cmp;
     std::size_t _size;
 };
 

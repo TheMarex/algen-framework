@@ -1,14 +1,17 @@
 #pragma once
 
+#include <functional>
+
 namespace pq {
 
 namespace addressable {
 
-template <typename T>
+template <typename T, typename Cmp=std::less<T>>
 class priority_queue {
 public:
     using value_type = T;
     using handle_type = void*;
+    using compartor_type = Cmp;
 
     // You also need to provide the following:
     // static void register_contenders(common::contender_list<priority_queue<T>> &list)
@@ -33,6 +36,9 @@ public:
 
     /// Get the number of elements in the priority queue
     virtual size_t size() = 0;
+
+    /// Returns a pointer to the comparator used
+    virtual void* get_comparator() = 0;
 
     /// Virtual destructor needed for inheritance
     virtual ~priority_queue() {}

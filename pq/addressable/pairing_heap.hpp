@@ -12,18 +12,19 @@ namespace pq {
 
 namespace addressable {
 
-template<typename T, template<typename S> class FreeListT=malloc_wrapper>
+template<typename T, class Cmp=std::less<T>, template<typename S> class FreeListT=malloc_wrapper>
 class pairing_heap : public priority_queue<T> {
 public:
-    using queue_type = addressable_pairing_heap<T, std::less<T>, FreeListT>;
+    using queue_type = addressable_pairing_heap<T, Cmp, FreeListT>;
+    using comparator_type = typename queue_type::comparator_type;
 
     pairing_heap() : queue() {}
 
-    static void register_contenders(common::contender_list<priority_queue<T>> &list) {
-        using Factory = common::contender_factory<priority_queue<T>>;
+    static void register_contenders(common::contender_list<priority_queue<T, Cmp>> &list) {
+        using Factory = common::contender_factory<priority_queue<T, Cmp>>;
 
         list.register_contender(Factory("pairing_heap without free list", "pairing-heap-no-fl",
-            [](){ return new pairing_heap<T>();}
+            [](){ return new pairing_heap<T, Cmp>();}
         ));
         //list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
         //    [](){ return new pairing_heap<T, free_list>();}
@@ -71,6 +72,11 @@ public:
     /// Get the number of elements in the priority queue
     size_t size() override {
         return queue.size();
+    }
+
+    /// Returns a pointer to the comparator used
+    void* get_comparator() override {
+        return static_cast<void*>(&queue.get_comparator());
     }
 
 protected:
