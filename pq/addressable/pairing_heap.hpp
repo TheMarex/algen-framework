@@ -5,6 +5,7 @@
 
 #include "priority_queue.h"
 
+#include "../../common/contenders.h"
 #include "../addressable_pairing_heap.hpp"
 #include "../helper/free_list.hpp"
 
@@ -13,7 +14,7 @@ namespace pq {
 namespace addressable {
 
 template<typename T, class Cmp=std::less<T>, template<typename S> class FreeListT=malloc_wrapper>
-class pairing_heap : public priority_queue<T> {
+class pairing_heap : public priority_queue<T, Cmp> {
 public:
     using queue_type = addressable_pairing_heap<T, Cmp, FreeListT>;
     using comparator_type = typename queue_type::comparator_type;
@@ -24,7 +25,7 @@ public:
         using Factory = common::contender_factory<priority_queue<T, Cmp>>;
 
         list.register_contender(Factory("pairing_heap without free list", "pairing-heap-no-fl",
-            [](){ return new pairing_heap<T, Cmp>();}
+            [](){ return new pairing_heap<T, Cmp>(); }
         ));
         //list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
         //    [](){ return new pairing_heap<T, free_list>();}
