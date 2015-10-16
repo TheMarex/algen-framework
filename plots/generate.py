@@ -22,12 +22,12 @@ set ylabel '{plot_desc} per element (n){add}'
 
 {logscale}
 
-## MULTIPLOT(ds) SELECT log(2, config_1) as x, avg({col_name})*1.0/(config_1*{factor}) AS y, MULTIPLOT
+## MULTIPLOT(ds) SELECT log(2, config_1) as x, avg({col_name})*1.0/config_1*{factor} AS y, MULTIPLOT
 ## FROM results WHERE bench="{bench_col}" GROUP BY MULTIPLOT,x ORDER BY MULTIPLOT,x
 """
 
 plot_types = [
-    ("timer", [("running time", "time", "time", {"factor": 1e6, "add": "in nanoseconds"})]),
+    ("timer", [("running time", "time", "time", {"factor": 1e6, "add": " in nanoseconds"})]),
     ("PAPI_cache", [("L1 data cache misses", "L1miss", "L1D_cache_misses", {"keypos": "top left"}),
                     ("L2 data cache misses", "L2miss", "L2D_cache_misses", {}),
                     ("L3 cache misses",      "L3miss", "L3_cache_misses", {})]),
