@@ -21,11 +21,11 @@ public:
     static void register_contenders(common::contender_list<priority_queue<T>> &list) {
         using Factory = common::contender_factory<priority_queue<T>>;
 
-        list.register_contender(Factory("pairing_heap without free list", "pairing-heap-no-fl",
-            [](){ return new pairing_heap<T>();}
-        ));
-        list.register_contender(Factory("vector based pairing_heap without free list", "vector-pairing-heap-no-fl",
+        list.register_contender(Factory("pairing_heap vector", "pairing-heap-vector",
             [](){ return new pairing_heap<T, addressable_pairing_heap_vector>();}
+        ));
+        list.register_contender(Factory("pairing_heap linked", "vector-pairing-linked",
+            [](){ return new pairing_heap<T, addressable_pairing_heap>();}
         ));
         //list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
         //    [](){ return new pairing_heap<T, free_list>();}
