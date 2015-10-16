@@ -7,10 +7,10 @@ import argparse
 gnuplot_file = """# IMPORT-DATA results {data_fn}
 
 # set terminal pdf size 13.33cm,10cm linewidth 2.0
-set terminal svg enhanced size 1024,768 fname 'Verdana' fsize 10 mouse jsdir "."
+set terminal svg enhanced size 512,368 fname 'Verdana' fsize 10 mouse jsdir "."
 set output "{out_fn}.svg"
 
-set pointsize 0.5
+set pointsize 1
 set grid xtics ytics
 set offsets 0,0,graph 0.01,graph 0.01
 
@@ -22,12 +22,12 @@ set ylabel '{plot_desc} per element (n){add}'
 
 {logscale}
 
-## MULTIPLOT(ds) SELECT log(2, config_1) as x, avg({col_name})*1.0/(config_1*{factor}) AS y, MULTIPLOT
+## MULTIPLOT(ds) SELECT log(2, config_1) as x, avg({col_name})*1.0/config_1*{factor} AS y, MULTIPLOT
 ## FROM results WHERE bench="{bench_col}" GROUP BY MULTIPLOT,x ORDER BY MULTIPLOT,x
 """
 
 plot_types = [
-    ("timer", [("running time", "time", "time", {"factor": 1e6, "add": "in nanoseconds"})]),
+    ("timer", [("running time", "time", "time", {"factor": 1e6, "add": " in nanoseconds"})]),
     ("PAPI_cache", [("L1 data cache misses", "L1miss", "L1D_cache_misses", {"keypos": "top left"}),
                     ("L2 data cache misses", "L2miss", "L2D_cache_misses", {}),
                     ("L3 cache misses",      "L3miss", "L3_cache_misses", {})]),
@@ -47,6 +47,7 @@ ds_types = [("Hash Table", "hash", [("insert", "insert"),
                                     ("find random", "find-random"),
                                     ("(ins-del-ins)^n (del-ins-del)^n", "ins-del-cycle"),
                                     ("wordcount", "wordcount")]),
+            ("Addressable Priority Queue", "addr_pq_dijk", [("dijkstra", "dijkstra")]),
             ("Priority Queue", "pq", [("heapsort random", "heapsort-rand"),
                                       ("heapsort permutation", "heapsort-perm"),
                                       ("(push-pop-push)^n (pop-push-pop)^n", "idi^n-did^n"),
