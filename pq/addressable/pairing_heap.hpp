@@ -7,16 +7,20 @@
 
 #include "../../common/contenders.h"
 #include "../addressable_pairing_heap.hpp"
+#include "../addressable_pairing_heap_vector.hpp"
 #include "../helper/free_list.hpp"
 
 namespace pq {
 
 namespace addressable {
 
-template<typename T, class Cmp=std::less<T>, template<typename S> class FreeListT=malloc_wrapper>
+template<typename T,
+    class Cmp=std::less<T>,
+    template<typename T0, typename C, template<typename S0> class F> class PairingHeapT=addressable_pairing_heap,
+    template<typename S> class FreeListT=malloc_wrapper>
 class pairing_heap : public priority_queue<T, Cmp> {
 public:
-    using queue_type = addressable_pairing_heap<T, Cmp, FreeListT>;
+    using queue_type = PairingHeapT<T, Cmp, FreeListT>;
     using comparator_type = typename queue_type::comparator_type;
 
     pairing_heap() : queue() {}
@@ -24,8 +28,12 @@ public:
     static void register_contenders(common::contender_list<priority_queue<T, Cmp>> &list) {
         using Factory = common::contender_factory<priority_queue<T, Cmp>>;
 
-        list.register_contender(Factory("pairing_heap without free list", "pairing-heap-no-fl",
-            [](){ return new pairing_heap<T, Cmp>(); }
+        list.register_contender(Factory("pairing_heap vector", "pairing-heap-vector",
+            [](){ return new pairing_heap<T, Cmp, addressable_pairing_heap_vector>(); }
+        ));
+
+        list.register_contender(Factory("pairing_heap linked", "pairing-heap-linked",
+            [](){ return new pairing_heap<T, Cmp, addressable_pairing_heap>(); }
         ));
         //list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
         //    [](){ return new pairing_heap<T, free_list>();}
