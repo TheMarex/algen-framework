@@ -37,21 +37,20 @@ public:
     template <int factor = 1>
     static void* fill_heap_random(PQ& queue, Configuration config, void* cb) {
         auto* data = new heap_data();
+        data->data = static_cast<T*>(fill_data_random<factor>(queue, config, cb));
 
-        std::mt19937 random{config.second};
         size_t size = factor * config.first;
         for (size_t i = 0; i < size; ++i)
         {
-            data->handles.push_back(queue.push(random()));
+            data->handles.push_back(queue.push(data->data[i]));
         }
-        data->data = static_cast<T*>(fill_data_random<factor>(queue, config, cb));
         return static_cast<void*>(data);
     }
 
     template <int factor = 1, int pops = 1>
     static void* fill_heap_random_and_pop(PQ& queue, Configuration config, void* cb)
     {
-        void* data = fill_heap_random(queue, config, cb);
+        void* data = fill_heap_random<factor>(queue, config, cb);
 
         for (size_t i = 0; i < pops; ++i)
         {
@@ -92,13 +91,25 @@ public:
         //    }, microbenchmark::clear_data, configs, benchmarks);
 
         common::register_benchmark("modify^n on filled heap", "filled-m^n",
+            microbenchmark::fill_heap_random_and_pop<2, 10>,
+            [](PQ &queue, Configuration config, void* ptr) {
+                heap_data* data = static_cast<heap_data*>(ptr);
+                size_t size = config.first;
+
+                for (size_t i = 0; i < size; ++i) {
+                    queue.modify(data->handles[i], data->data[size + i]);
+                }
+            }, microbenchmark::clear_data, configs, benchmarks);
+
+        common::register_benchmark("modify-up^n on filled heap", "filled-m_up^n",
             microbenchmark::fill_heap_random_and_pop<1, 10>,
             [](PQ &queue, Configuration config, void* ptr) {
                 heap_data* data = static_cast<heap_data*>(ptr);
                 size_t size = config.first;
 
                 for (size_t i = 0; i < size; ++i) {
-                    queue.modify(data->handles[i], data->data[i]);
+                    assert(data->data[i] + 1 > data->data[i]);
+                    queue.modify(data->handles[i], data->data[i]+1);
                 }
             }, microbenchmark::clear_data, configs, benchmarks);
     }
