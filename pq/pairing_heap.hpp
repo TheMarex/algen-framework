@@ -21,18 +21,21 @@ public:
     static void register_contenders(common::contender_list<priority_queue<T>> &list) {
         using Factory = common::contender_factory<priority_queue<T>>;
 
-        list.register_contender(Factory("pairing_heap vector", "pairing-heap-vector",
-            [](){ return new pairing_heap<T, addressable_pairing_heap_vector>();}
-        ));
-        list.register_contender(Factory("pairing_heap linked", "vector-pairing-linked",
-            [](){ return new pairing_heap<T, addressable_pairing_heap>();}
-        ));
-        //list.register_contender(Factory("pairing_heap with free list", "pairing-heap-fl",
-        //    [](){ return new pairing_heap<T, free_list>();}
+        //list.register_contender(Factory("pairing_heap vector", "pairing-heap-vector",
+        //    [](){ return new pairing_heap<T, addressable_pairing_heap_vector>();}
         //));
-        //list.register_contender(Factory("pairing_heap lazy-shrink free list", "pairing-heap-lazyshrink-fl",
-        //    [](){ return new pairing_heap<T, ls_free_list>();}
+        //list.register_contender(Factory("pairing_heap linked", "vector-pairing-linked",
+        //    [](){ return new pairing_heap<T, addressable_pairing_heap>();}
         //));
+        list.register_contender(Factory("pairing_heap c=1.0", "pairing-heap-fl-100",
+            [](){ return new pairing_heap<T, addressable_pairing_heap, free_list_100>();}
+        ));
+        list.register_contender(Factory("pairing_heap c=1.5", "pairing-heap-fl-150",
+            [](){ return new pairing_heap<T, addressable_pairing_heap, free_list_150>();}
+        ));
+        list.register_contender(Factory("pairing_heap c=2.0", "pairing-heap-fl-200",
+            [](){ return new pairing_heap<T, addressable_pairing_heap, free_list_200>();}
+        ));
     }
 
     /// Add an element to the priority queue by const lvalue reference

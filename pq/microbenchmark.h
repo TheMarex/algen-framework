@@ -52,54 +52,54 @@ public:
 
     static void register_benchmarks(common::contender_list<Benchmark> &benchmarks) {
         const std::vector<Configuration> configs{
-            std::make_pair(1<<16, 0xDECAF1),
             std::make_pair(1<<15, 0xDECAF),
+            std::make_pair(1<<16, 0xDECAF1),
             std::make_pair(1<<17, 0xBEEF1),
             std::make_pair(1<<18, 0xBEEF),
             std::make_pair(1<<19, 0xC0FFEE1),
             std::make_pair(1<<20, 0xC0FFEE),
             std::make_pair(1<<21, 0xF005BA112),
-            std::make_pair(1<<22, 0xF005BA11),
+            //std::make_pair(1<<22, 0xF005BA11),
             //std::make_pair(1<<26, 0xCA55E77E)
         };
 
-        common::register_benchmark("push", "push",
-            microbenchmark::fill_data_random<1>,
-            [](PQ &queue, Configuration config, void* ptr) {
-                T* data = static_cast<T*>(ptr);
-                for (size_t i = 0; i < config.first; ++i)
-                {
-                    queue.push(data[i]);
-                }
-            }, microbenchmark::clear_data, configs, benchmarks);
+        //common::register_benchmark("push", "push",
+        //    microbenchmark::fill_data_random<1>,
+        //    [](PQ &queue, Configuration config, void* ptr) {
+        //        T* data = static_cast<T*>(ptr);
+        //        for (size_t i = 0; i < config.first; ++i)
+        //        {
+        //            queue.push(data[i]);
+        //        }
+        //    }, microbenchmark::clear_data, configs, benchmarks);
 
-        common::register_benchmark("pop", "pop", microbenchmark::fill_heap_random<1>,
-            [](PQ &queue, Configuration, void*) {
-                while (queue.size() > 0)
-                    queue.pop();
-            }, configs, benchmarks);
+        //common::register_benchmark("pop", "pop", microbenchmark::fill_heap_random<1>,
+        //    [](PQ &queue, Configuration, void*) {
+        //        while (queue.size() > 0)
+        //            queue.pop();
+        //    }, configs, benchmarks);
 
-        common::register_benchmark("push^n pop^3", "p^n-p^3",
-            microbenchmark::fill_data_random<1>,
-            [](PQ &queue, Configuration config, void* ptr) {
-                T* data = static_cast<T*>(ptr);
-                for (size_t i = 0; i < config.first; ++i) {
-                    queue.push(data[i]);
-                }
-                for (size_t i = 0; i < 3; ++i) {
-                    queue.pop();
-                }
-            }, microbenchmark::clear_data, configs, benchmarks);
+        //common::register_benchmark("push^n pop^3", "p^n-p^3",
+        //    microbenchmark::fill_data_random<1>,
+        //    [](PQ &queue, Configuration config, void* ptr) {
+        //        T* data = static_cast<T*>(ptr);
+        //        for (size_t i = 0; i < config.first; ++i) {
+        //            queue.push(data[i]);
+        //        }
+        //        for (size_t i = 0; i < 3; ++i) {
+        //            queue.pop();
+        //        }
+        //    }, microbenchmark::clear_data, configs, benchmarks);
 
-        common::register_benchmark("push-pop-mix on full heap", "push-pop-mix",
-            microbenchmark::fill_both_random<1>,
-            [](PQ &queue, Configuration config, void* ptr) {
-                T* data = static_cast<T*>(ptr);
-                for (size_t i = 0; i < config.first; ++i) {
-                    queue.push(data[i]);
-                    queue.pop();
-                }
-            }, microbenchmark::clear_data, configs, benchmarks);
+        //common::register_benchmark("push-pop-mix on full heap", "push-pop-mix",
+        //    microbenchmark::fill_both_random<1>,
+        //    [](PQ &queue, Configuration config, void* ptr) {
+        //        T* data = static_cast<T*>(ptr);
+        //        for (size_t i = 0; i < config.first; ++i) {
+        //            queue.push(data[i]);
+        //            queue.pop();
+        //        }
+        //    }, microbenchmark::clear_data, configs, benchmarks);
 
         common::register_benchmark("(push-pop-push)^n (pop-push-pop)^n", "idi^n-did^n",
             microbenchmark::fill_data_random<3>,

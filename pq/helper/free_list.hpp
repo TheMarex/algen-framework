@@ -196,8 +196,9 @@ private:
     std::size_t _size;
 };
 
-template<typename S> using free_list = overallocating_free_list<S, 150, 300>;
-template<typename S> using ls_free_list = lazyshrink_free_list<S, 300>;
+template<typename S> using free_list_100 = lazyshrink_free_list<S, 100>;
+template<typename S> using free_list_150 = lazyshrink_free_list<S, 150>;
+template<typename S> using free_list_200 = lazyshrink_free_list<S, 200>;
 
 /// Wraps new and delte in free list benchmakrs for comparison
 template<typename T>
